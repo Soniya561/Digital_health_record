@@ -314,3 +314,84 @@ exports.aiChat = async (req, res, next) => {
     res.status(500).json({ error: 'Failed to connect to AI service' }); 
   }
 };
+
+exports.getInsights = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const records = await HealthRecord.find({ patient: userId }).sort({ createdAt: -1 }).limit(10);
+    const recordsSummary = records.map(r => `${r.title} (${r.category}): ${r.description}`).join('\n');
+
+    if (records.length === 0) {
+      return res.json({ 
+        insights: [
+          { title: 'Welcome', message: 'Upload your first medical record to get AI health insights!', type: 'info' }
+        ] 
+      });
+    }
+
+    const messages = [
+      { 
+        role: 'system', 
+        content: `You are a medical AI analyzer. Based on the following health records, provide 3 short, actionable health insights.
+        Format your response as a JSON object with an "insights" key containing an array of objects with keys: "title", "message", and "type" (one of "success", "warning", "info").
+        Return ONLY the JSON object.
+        
+        Records Context:
+        ${recordsSummary}` 
+      }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages,
+      response_format: { type: "json_object" }
+    });
+
+    let insights;
+    try {
+      const parsed = JSON.parse(completion.choices[0].message.content);
+      insights = parsed.insights || parsed;
+      if (!Array.isArray(insights)) insights = [insights];
+    } catch (e) {
+      insights = [
+        { title: 'Analysis Complete', message: 'We have reviewed your recent records. Stay healthy!', type: 'info' }
+      ];
+    }
+
+    res.json({ insights });
+  } catch (err) {
+    console.error('AI Insights Error:', err);
+    res.status(500).json({ error: 'Failed to generate insights' });
+  }
+};
+
+exports.getVoiceExplanation = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const records = await HealthRecord.find({ patient: userId }).sort({ createdAt: -1 }).limit(5);
+    const recordsSummary = records.map(r => `${r.title} (${r.category}): ${r.description}`).join('\n');
+
+    const messages = [
+      { 
+        role: 'system', 
+        content: `You are a helpful AI health assistant. Your task is to explain the user's recent medical records in very simple language, like explaining to a 10-year-old child.
+        Focus on "what's in that" - specifically explain the most recent reports and important medical findings found in their records.
+        Keep it very simple, friendly, and brief (max 3-4 sentences).
+        
+        Recent Records:
+        ${recordsSummary || 'No recent records found.'}` 
+      },
+      { role: 'user', content: 'Explain my latest health report to me in simple terms.' }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages,
+    });
+
+    res.json({ explanation: completion.choices[0].message.content });
+  } catch (err) {
+    console.error('AI Voice Explanation Error:', err);
+    res.status(500).json({ error: 'Failed to generate explanation' });
+  }
+};
