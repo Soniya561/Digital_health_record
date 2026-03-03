@@ -81,15 +81,34 @@ exports.getDashboard = async (req, res, next) => {
 // Update profile (patient only or admin)
 exports.updateProfile = async (req, res, next) => {
   try {
-    const allowed = ['name','preferredLanguage','phone','bloodGroup','allergies','emergencyContact'];
+    const allowed = ['name', 'preferredLanguage', 'phone', 'bloodGroup', 'allergies', 'emergencyContact', 'dob', 'gender'];
     const updates = {};
-    allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
+    
+    allowed.forEach(k => { 
+      if (k in req.body) {
+        // Handle empty strings for Date fields or other specific types
+        if ((k === 'dob' || k === 'gender') && req.body[k] === '') {
+          updates[k] = null;
+        } else if (req.body[k] !== undefined) {
+          updates[k] = req.body[k];
+        }
+      }
+    });
+
     const user = await Patient.findById(req.user.id);
     if (!user) return res.status(404).json({ error: 'Not found' });
-    Object.assign(user, updates);
+
+    // Apply updates manually to ensure virtuals and other logic are triggered correctly
+    Object.keys(updates).forEach(key => {
+      user[key] = updates[key];
+    });
+
     await user.save();
     res.json({ ok: true });
-  } catch (err) { next(err); }
+  } catch (err) {
+    console.error('Update Profile Error:', err);
+    res.status(400).json({ error: err.message || 'Failed to update profile' });
+  }
 };
 
 // Enable emergency access: generate one-time emergency token with expiry stored hashed

@@ -192,6 +192,10 @@ export const translations: Record<string, any> = {
     emergencyContact: "Emergency Contact",
     firstAidTips: "First Aid Tips",
     liveLocationSharing: "Live Location Sharing",
+    gender: "Gender",
+    dateOfBirth: "Date of Birth",
+    patientName: "Patient Name",
+    patientPhone: "Patient Phone",
     liveLocationDesc: "In emergency mode, your real-time location is automatically shared with emergency contacts and nearby hospitals.",
     configureSettings: "Configure Settings",
     // Doctor Portal

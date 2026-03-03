@@ -50,15 +50,19 @@ export function EmergencyTab() {
   const handleSave = async () => {
     try {
       await api.put('/patients/me', {
+        name: editedProfile.name,
+        phone: editedProfile.phone,
         bloodGroup: editedProfile.bloodGroup,
-        allergies: editedProfile.allergies,
+        allergies: editedProfile.allergies ? (Array.isArray(editedProfile.allergies) ? editedProfile.allergies : editedProfile.allergies.split(',').map((s: string) => s.trim()).filter((s: string) => s !== "")) : [],
+        dob: editedProfile.dob,
+        gender: editedProfile.gender,
         emergencyContact: editedProfile.emergencyContact
       });
       setProfile(editedProfile);
       setIsEditing(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update profile:', err);
-      alert('Failed to update emergency details');
+      alert(err.message || 'Failed to update emergency details');
     }
   };
 
@@ -75,7 +79,22 @@ export function EmergencyTab() {
   };
 
   const handleCall = (number: string) => {
+    if (!number || number.trim() === '') {
+      // If no number, try to search for it on Google Maps
+      const query = profile?.name || 'Emergency';
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+      return;
+    }
     window.location.href = `tel:${number}`;
+  };
+
+  const handleHospitalCall = (hospitalName: string, phone?: string) => {
+    if (phone) {
+      window.location.href = `tel:${phone}`;
+    } else {
+      // If no phone provided, search for the hospital on Google Maps where user can call
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospitalName)}`, '_blank');
+    }
   };
 
   const handleMessage = (number: string) => {
@@ -180,6 +199,38 @@ export function EmergencyTab() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <div className="text-xs text-red-300/70 flex items-center gap-1">
+              <User className="w-3 h-3" />
+              {t('patientName')}
+            </div>
+            {isEditing ? (
+              <input
+                className="w-full bg-red-900/20 border border-red-800 rounded px-2 py-1 text-red-100 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                value={editedProfile?.name || ''}
+                onChange={(e) => setEditedProfile({...editedProfile, name: e.target.value})}
+                placeholder="Full Name"
+              />
+            ) : (
+              <div className="font-bold text-red-100">{profile?.name || 'Not set'}</div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-red-300/70 flex items-center gap-1">
+              <Phone className="w-3 h-3" />
+              {t('patientPhone')}
+            </div>
+            {isEditing ? (
+              <input
+                className="w-full bg-red-900/20 border border-red-800 rounded px-2 py-1 text-red-100 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                value={editedProfile?.phone || ''}
+                onChange={(e) => setEditedProfile({...editedProfile, phone: e.target.value})}
+                placeholder="Phone Number"
+              />
+            ) : (
+              <div className="font-bold text-red-100">{profile?.phone || 'Not set'}</div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-red-300/70 flex items-center gap-1">
               <Droplet className="w-3 h-3" />
               {t('bloodGroup')}
             </div>
@@ -208,6 +259,42 @@ export function EmergencyTab() {
               />
             ) : (
               <div className="font-bold text-red-100">{profile?.allergies?.join(', ') || 'None'}</div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-red-300/70 flex items-center gap-1">
+              <Activity className="w-3 h-3" />
+              {t('dateOfBirth')}
+            </div>
+            {isEditing ? (
+              <input
+                type="date"
+                className="w-full bg-red-900/20 border border-red-800 rounded px-2 py-1 text-red-100 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                value={editedProfile?.dob ? new Date(editedProfile.dob).toISOString().split('T')[0] : ''}
+                onChange={(e) => setEditedProfile({...editedProfile, dob: e.target.value})}
+              />
+            ) : (
+              <div className="font-bold text-red-100">{profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'Not set'}</div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-red-300/70 flex items-center gap-1">
+              <User className="w-3 h-3" />
+              {t('gender')}
+            </div>
+            {isEditing ? (
+              <select
+                className="w-full bg-red-900/20 border border-red-800 rounded px-2 py-1 text-red-100 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                value={editedProfile?.gender || ''}
+                onChange={(e) => setEditedProfile({...editedProfile, gender: e.target.value})}
+              >
+                <option value="">{t('chooseLanguage')}</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            ) : (
+              <div className="font-bold text-red-100">{profile?.gender || 'Not set'}</div>
             )}
           </div>
         </div>
@@ -309,7 +396,7 @@ export function EmergencyTab() {
                   <Navigation className="w-4 h-4" />
                 </Button>
                 <Button 
-                  onClick={() => handleCall(hospital.phone)}
+                  onClick={() => handleHospitalCall(hospital.name, hospital.phone)}
                   className="h-10 w-10 p-0 rounded-full bg-red-600 hover:bg-red-700"
                 >
                   <Phone className="w-4 h-4" />
