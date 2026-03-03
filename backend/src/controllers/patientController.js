@@ -81,7 +81,7 @@ exports.getDashboard = async (req, res, next) => {
 // Update profile (patient only or admin)
 exports.updateProfile = async (req, res, next) => {
   try {
-    const allowed = ['name','preferredLanguage','phone'];
+    const allowed = ['name','preferredLanguage','phone','bloodGroup','allergies','emergencyContact'];
     const updates = {};
     allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
     const user = await Patient.findById(req.user.id);

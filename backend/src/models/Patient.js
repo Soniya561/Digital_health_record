@@ -21,6 +21,13 @@ const PatientSchema = new mongoose.Schema({
   disabilities: [{ type: String }],
   chronicConditions: [{ type: String }],
   employmentType: { type: String },
+  bloodGroup: { type: String },
+  allergies: [{ type: String }],
+  emergencyContact: {
+    name: { type: String },
+    phone: { type: String },
+    relation: { type: String }
+  },
   appliedSchemes: [{
     schemeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Scheme' },
     status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
