@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Mic, Send, Bell, Volume2, MessageCircle, Loader2 } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
@@ -17,19 +17,37 @@ interface Message {
   timestamp: string;
 }
 
+interface Insight {
+  title: string;
+  message: string;
+  type: 'success' | 'warning' | 'info';
+}
+
 export function AIAssistantTab() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'ai',
-      content: 'Hello Rajesh! 👋 I\'m your AI Health Assistant. I can help you understand your medical reports, remind you about medications, and answer health questions in simple language. How can I help you today?',
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [healthInsights, setHealthInsights] = useState<Insight[]>([]);
+  const [loadingInsights, setLoadingInsights] = useState(true);
+
+  useEffect(() => {
+    fetchInsights();
+  }, []);
+
+  const fetchInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const res = await api.get('/ai/insights');
+      setHealthInsights(res.insights || []);
+    } catch (err: any) {
+      console.error('Failed to fetch health insights', err);
+      // Fallback or empty state
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   const { isListening, startListening } = useVoice((result) => {
     setInputMessage(result);
@@ -40,24 +58,6 @@ export function AIAssistantTab() {
     '💊 My medication schedule',
     '⚠️ Health risk analysis',
     '🏥 Nearby hospitals',
-  ];
-
-  const healthInsights = [
-    {
-      title: 'Blood Sugar Trend',
-      message: 'Your blood sugar levels have been stable for the past 2 weeks. Keep up the good work! 🎯',
-      type: 'success' as const,
-    },
-    {
-      title: 'Medication Reminder',
-      message: 'Don\'t forget to take your evening medication at 8 PM today.',
-      type: 'warning' as const,
-    },
-    {
-      title: 'Health Tip',
-      message: 'Walking for 30 minutes daily can help manage your diabetes better.',
-      type: 'info' as const,
-    },
   ];
 
   const handleSendMessage = async () => {
@@ -138,34 +138,42 @@ export function AIAssistantTab() {
           {t('aiHealthInsights')}
         </h3>
         
-        {healthInsights.map((insight, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className={`
-              ${insight.type === 'success' ? 'bg-green-50 border-green-200' : ''}
-              ${insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200' : ''}
-              ${insight.type === 'info' ? 'bg-blue-50 border-blue-200' : ''}
-            `}>
-              <div className="flex items-start gap-3">
-                <Bell className={`w-5 h-5 flex-shrink-0 ${
-                  insight.type === 'success' ? 'text-green-600' : ''
-                } ${
-                  insight.type === 'warning' ? 'text-yellow-600' : ''
-                } ${
-                  insight.type === 'info' ? 'text-blue-600' : ''
-                }`} />
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">{insight.title}</h4>
-                  <p className="text-sm text-muted-foreground">{insight.message}</p>
+        {loadingInsights ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
+          </div>
+        ) : healthInsights.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">{t('noInsightsYet')}</p>
+        ) : (
+          healthInsights.map((insight, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className={`
+                ${insight.type === 'success' ? 'bg-green-50 border-green-200' : ''}
+                ${insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200' : ''}
+                ${insight.type === 'info' ? 'bg-blue-50 border-blue-200' : ''}
+              `}>
+                <div className="flex items-start gap-3">
+                  <Bell className={`w-5 h-5 flex-shrink-0 ${
+                    insight.type === 'success' ? 'text-green-600' : ''
+                  } ${
+                    insight.type === 'warning' ? 'text-yellow-600' : ''
+                  } ${
+                    insight.type === 'info' ? 'text-blue-600' : ''
+                  }`} />
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">{insight.title}</h4>
+                    <p className="text-sm text-muted-foreground">{insight.message}</p>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+              </Card>
+            </motion.div>
+          ))
+        )}
       </div>
 
       {/* Chat Interface */}

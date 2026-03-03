@@ -146,7 +146,7 @@ export function PatientDashboard({ onLogout, language, user }: PatientDashboardP
           {activeTab === 'records' && <HealthRecordsTab onNavigate={setActiveTab} />}
           {activeTab === 'ai' && <AIAssistantTab />}
           {activeTab === 'appointments' && <AppointmentsTab />}
-          {activeTab === 'schemes' && <SchemesTab />}
+          {activeTab === 'schemes' && <SchemesTab onNavigate={setActiveTab} />}
           {activeTab === 'emergency' && <EmergencyTab />}
         </motion.div>
       </div>

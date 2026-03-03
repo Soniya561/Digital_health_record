@@ -25,7 +25,7 @@ interface SchemeResult {
   applied: boolean;
 }
 
-export function SchemesTab() {
+export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const [loading, setLoading] = useState(true);
@@ -264,96 +264,6 @@ export function SchemesTab() {
         </Card>
       )}
 
-      {/* AI Detection Banner */}
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-        <div className="flex items-start gap-3">
-          <motion.div
-            className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl"
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <Sparkles className="w-6 h-6 text-white" />
-          </motion.div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                {t('aiEligibilityDetection')}
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleRefreshAi} 
-                disabled={isRefreshingAi}
-                className="text-purple-600 hover:text-purple-700 hover:bg-purple-100"
-              >
-                {isRefreshingAi ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                {isRefreshingAi ? 'Analyzing...' : 'Refresh AI'}
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t('aiEligibilityDesc')}
-            </p>
-
-            {aiRecommendations && (
-              <div className="mt-4 p-4 bg-white/50 rounded-lg border border-purple-100">
-                <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line mb-4">
-                  {aiRecommendations}
-                </div>
-                
-                {/* AI Chat about Schemes */}
-                <div className="space-y-3 mt-6 border-t border-purple-100 pt-4">
-                  <h4 className="text-sm font-semibold text-purple-700 flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    Ask AI about these schemes
-                  </h4>
-                  
-                  <div className="max-h-60 overflow-y-auto space-y-2 mb-3 pr-2">
-                    {chatHistory.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                          msg.role === 'user' 
-                            ? 'bg-purple-600 text-white' 
-                            : 'bg-white border border-purple-100 text-muted-foreground'
-                        }`}>
-                          {msg.content}
-                        </div>
-                      </div>
-                    ))}
-                    {isChatLoading && (
-                      <div className="flex justify-start">
-                        <div className="bg-white border border-purple-100 rounded-lg px-3 py-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Ask a question about your eligibility..."
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
-                      className="flex-1 px-3 py-2 text-sm bg-white border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleSendChatMessage}
-                      disabled={isChatLoading || !chatMessage.trim()}
-                      className="bg-purple-600 hover:bg-purple-700 h-9 w-9 p-0 flex items-center justify-center"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-
       {/* Applied Schemes */}
       {appliedSchemes.length > 0 && (
         <div>
@@ -481,7 +391,7 @@ export function SchemesTab() {
             <p className="text-sm text-muted-foreground mb-3">
               {t('schemeHelpDesc')}
             </p>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => onNavigate?.('ai')}>
               {t('chatWithAI')}
             </Button>
           </div>

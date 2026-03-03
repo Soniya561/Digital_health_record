@@ -161,9 +161,6 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
             >
               {t('uploadRecord')}
             </Button>
-            <Badge variant="ai">
-              ✨ {t('aiClassified')}
-            </Badge>
           </div>
         </div>
       </Card>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Calendar, Clock, MapPin, Video, User, Plus, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Plus, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
@@ -203,12 +203,6 @@ export function AppointmentsTab() {
                         <div>
                           <h4 className="font-semibold text-foreground flex items-center gap-2">
                             {appointment.doctor}
-                            {appointment.type === 'video' && (
-                              <Badge variant="info">
-                                <Video className="w-3 h-3" />
-                                Video
-                              </Badge>
-                            )}
                           </h4>
                           <p className="text-sm text-muted-foreground">{appointment.specialty}</p>
                         </div>
@@ -230,9 +224,9 @@ export function AppointmentsTab() {
                         <Button 
                           variant="primary" 
                           size="sm"
-                          onClick={() => appointment.type === 'video' ? console.log('Join video call') : handleOpenDetails(appointment)}
+                          onClick={() => handleOpenDetails(appointment)}
                         >
-                          {appointment.type === 'video' ? t('joinVideoCall') : t('viewDetails')}
+                          {t('viewDetails')}
                         </Button>
                         <Button 
                           variant="outline" 
@@ -382,21 +376,6 @@ export function AppointmentsTab() {
                   />
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="type">{t('appointmentType')}</Label>
-                <Select 
-                  value={formData.type} 
-                  onValueChange={(value: 'in-person' | 'video') => setFormData({ ...formData, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in-person">{t('inPerson')}</SelectItem>
-                    <SelectItem value="video">{t('videoConsultation')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowBookDialog(false)}>
@@ -454,13 +433,6 @@ export function AppointmentsTab() {
                   <MapPin className="w-4 h-4 text-primary" />
                   {selectedAppointment.hospital}
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground uppercase">{t('appointmentType')}</p>
-                <Badge variant={selectedAppointment.type === 'video' ? 'info' : 'secondary'}>
-                  {selectedAppointment.type === 'video' ? t('videoConsultation') : t('inPerson')}
-                </Badge>
               </div>
 
               {selectedAppointment.summary && (

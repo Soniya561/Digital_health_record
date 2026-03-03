@@ -29,7 +29,7 @@ const AppointmentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['in-person', 'video'],
+    enum: ['in-person'],
     default: 'in-person'
   },
   status: {

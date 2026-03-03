@@ -173,3 +173,66 @@ exports.chatAboutSchemes = async (req, res) => {
     res.status(500).json({ message: 'Error connecting to AI service' });
   }
 };
+
+exports.getHealthInsights = async (req, res) => {
+  try {
+    const patient = await Patient.findById(req.user.id);
+    const records = await HealthRecord.find({ patient: req.user.id });
+
+    if (!patient) return res.status(404).json({ error: 'Patient not found' });
+
+    const patientData = {
+      name: patient.name,
+      age: patient.dob ? new Date().getFullYear() - new Date(patient.dob).getFullYear() : 'Unknown',
+      gender: patient.gender,
+      chronicConditions: patient.chronicConditions,
+      healthHistory: records.map(r => ({
+        title: r.title,
+        description: r.description,
+        category: r.category,
+        date: r.createdAt
+      }))
+    };
+
+    const prompt = `Analyze the following patient's health data and history to provide 3 concise, actionable health insights.
+    
+    Patient Profile:
+    ${JSON.stringify(patientData, null, 2)}
+    
+    Requirements:
+    - Return exactly 3 insights.
+    - Each insight must have a short title, a message, and a type (one of: "success", "warning", "info").
+    - Format as a JSON array of objects with keys: title, message, type.
+    - Be specific to the patient's data (e.g., if they have diabetes, mention it).
+    - Use clear, professional, and empathetic language.
+    
+    Example format:
+    [
+      {"title": "insight title", "message": "insight message", "type": "success"},
+      ...
+    ]`;
+
+    const response = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'You are a medical AI assistant providing personalized health insights.' },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' }
+    });
+
+    let insights;
+    try {
+      const parsed = JSON.parse(response.choices[0].message.content);
+      insights = Array.isArray(parsed) ? parsed : (parsed.insights || []);
+    } catch (e) {
+      console.error('Failed to parse AI response as JSON', e);
+      insights = [];
+    }
+
+    res.json({ insights });
+  } catch (error) {
+    console.error('Health Insights Error:', error);
+    res.status(500).json({ message: 'Error generating health insights' });
+  }
+};

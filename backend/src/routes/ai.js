@@ -7,5 +7,6 @@ const { authenticate } = require('../middlewares/auth');
 router.post('/ask', authenticate, aiController.askAI);
 router.get('/schemes', authenticate, aiController.getAiSchemeRecommendations);
 router.post('/schemes/chat', authenticate, aiController.chatAboutSchemes);
+router.get('/insights', authenticate, aiController.getHealthInsights);
 
 module.exports = router;
