@@ -29,6 +29,35 @@ export function HealthQRTab({ user }: { user: any }) {
   };
 
   const qrUrl = qrData?.qrCodeDataUrl;
+  const blockchainId = qrData?.blockchainId || user?.blockchainId;
+
+  const handleDownload = () => {
+    if (!qrUrl) return;
+    const link = document.createElement('a');
+    link.href = qrUrl;
+    link.download = `health-qr-${user?.name || 'patient'}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/public-profile/${blockchainId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: t('yourHealthQR'),
+          text: `Check out my secure health identity on Kerala Digital Health Portal`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied to clipboard');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -107,10 +136,20 @@ export function HealthQRTab({ user }: { user: any }) {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" icon={<Download className="w-4 h-4" />}>
+          <Button 
+            variant="outline" 
+            icon={<Download className="w-4 h-4" />}
+            onClick={handleDownload}
+            disabled={!qrUrl}
+          >
             {t('download')}
           </Button>
-          <Button variant="outline" icon={<Share2 className="w-4 h-4" />}>
+          <Button 
+            variant="outline" 
+            icon={<Share2 className="w-4 h-4" />}
+            onClick={handleShare}
+            disabled={!blockchainId}
+          >
             {t('share')}
           </Button>
         </div>

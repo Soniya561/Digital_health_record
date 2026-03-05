@@ -203,6 +203,22 @@ export function PatientHistoryTab() {
                       >
                         Download
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        icon={<Share2 className="w-4 h-4" />}
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}/qr/${record._id}`;
+                          if (navigator.share) {
+                            navigator.share({ title: record.title, url: shareUrl });
+                          } else {
+                            navigator.clipboard.writeText(shareUrl);
+                            alert('Link copied to clipboard');
+                          }
+                        }}
+                      >
+                        Share
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -323,6 +339,22 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, t, langua
             >
               <Download className="w-4 h-4 mr-2" />
               Download
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-none border-zinc-700 hover:bg-zinc-800 text-white"
+              onClick={() => {
+                const shareUrl = `${window.location.origin}/qr/${record._id}`;
+                if (navigator.share) {
+                  navigator.share({ title: record.title, url: shareUrl });
+                } else {
+                  navigator.clipboard.writeText(shareUrl);
+                  alert('Link copied to clipboard');
+                }
+              }}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
             </Button>
           </div>
           <Button onClick={() => onOpenChange(false)} className="bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white">

@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Search, UserCheck, UserX, Shield, Building2, User } from 'lucide-react';
+import { Search, UserCheck, UserX, Shield, Building2, User, Mail, Phone, MapPin, Calendar, Activity } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/app/components/ui/dialog';
 
 interface UserRecord {
   id: string;
@@ -21,6 +29,7 @@ interface UserRecord {
 export function UserManagementTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
 
   const users: UserRecord[] = [
     {
@@ -209,7 +218,12 @@ export function UserManagementTab() {
                   {/* Info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-foreground">{user.name}</h4>
+                      <h4 
+                        className="font-semibold text-foreground hover:text-[#0b6e4f] cursor-pointer transition-colors"
+                        onClick={() => setSelectedUser(user)}
+                      >
+                        {user.name}
+                      </h4>
                       {user.verified && (
                         <Shield className="w-4 h-4 text-green-600" />
                       )}
@@ -240,7 +254,11 @@ export function UserManagementTab() {
                       Verify
                     </Button>
                   )}
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSelectedUser(user)}
+                  >
                     View
                   </Button>
                   <Button variant="ghost" size="sm">
@@ -271,6 +289,100 @@ export function UserManagementTab() {
           </div>
         </div>
       </Card>
+
+      <UserDetailDialog 
+        user={selectedUser} 
+        open={!!selectedUser} 
+        onOpenChange={(open) => !open && setSelectedUser(null)} 
+      />
     </div>
+  );
+}
+
+function UserDetailDialog({ user, open, onOpenChange }: { 
+  user: UserRecord | null, 
+  open: boolean, 
+  onOpenChange: (open: boolean) => void 
+}) {
+  if (!user) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white">
+        <DialogHeader>
+          <div className="flex items-center gap-4 mb-2">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              user.role === 'doctor' ? 'bg-blue-100 text-blue-700' :
+              user.role === 'hospital' ? 'bg-purple-100 text-purple-700' :
+              'bg-green-100 text-green-700'
+            }`}>
+              {user.role === 'doctor' ? <User className="w-6 h-6" /> :
+               user.role === 'hospital' ? <Building2 className="w-6 h-6" /> :
+               <User className="w-6 h-6" />}
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">{user.name}</DialogTitle>
+              <DialogDescription className="text-zinc-400 capitalize">
+                {user.role} • {user.status}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-1">
+                <Mail className="w-3 h-3" /> Email
+              </p>
+              <p className="text-sm">{user.email}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-1">
+                <Phone className="w-3 h-3" /> Phone
+              </p>
+              <p className="text-sm">{user.phone}</p>
+            </div>
+          </div>
+
+          {user.organization && (
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-1">
+                <Building2 className="w-3 h-3" /> Organization
+              </p>
+              <p className="text-sm">{user.organization}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-1">
+                <Shield className="w-3 h-3" /> Verification
+              </p>
+              <Badge variant={user.verified ? 'success' : 'warning'}>
+                {user.verified ? 'Verified' : 'Pending'}
+              </Badge>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-1">
+                <Activity className="w-3 h-3" /> Last Active
+              </p>
+              <p className="text-sm">{user.lastActive}</p>
+            </div>
+          </div>
+          
+          <div className="pt-4 border-t border-zinc-800 flex gap-2">
+            <Button variant="outline" className="flex-1 border-zinc-800 hover:bg-zinc-900" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            {user.role === 'patient' && (
+              <Button className="flex-1 bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white">
+                Download Records
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

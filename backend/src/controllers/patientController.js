@@ -144,7 +144,7 @@ exports.getQRCode = async (req, res, next) => {
 exports.getPublicProfile = async (req, res, next) => {
   try {
     const { blockchainId } = req.params;
-    const patient = await Patient.findOne({ blockchainId }).select('name age gender bloodGroup blockchainId');
+    const patient = await Patient.findOne({ blockchainId }).select('name age gender bloodGroup blockchainId abhaId allergies emergencyContact dob');
     if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
     const healthRecords = await HealthRecord.find({ patient: patient._id }).sort({ createdAt: -1 });
