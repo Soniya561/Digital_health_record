@@ -5,10 +5,15 @@ const HealthRecord = require('../models/HealthRecord');
 const Appointment = require('../models/Appointment');
 
 // Initialize OpenAI client for Groq or Gemini (using OpenAI compatibility)
-const openai = new OpenAI({
-  apiKey: process.env.AI_API_KEY,
-  baseURL: process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1', // Default to Groq if not specified
-});
+let openai = null;
+if (process.env.AI_API_KEY && process.env.AI_API_KEY !== 'replace_with_your_api_key') {
+  openai = new OpenAI({
+    apiKey: process.env.AI_API_KEY,
+    baseURL: process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1', // Default to Groq if not specified
+  });
+} else {
+  console.warn('AI_API_KEY not set. AI features will be unavailable.');
+}
 
 function extractJsonObject(text = '') {
   if (!text || typeof text !== 'string') return null;
@@ -110,6 +115,10 @@ const generateSchemeRecommendations = async (patient) => {
   Mention specific health conditions found in their history that match the scheme criteria.
   Return the response as a clear, structured summary with bullet points.`;
 
+  if (!openai) {
+    return "AI recommendations are currently unavailable. Please check back later or contact support.";
+  }
+
   const response = await openai.chat.completions.create({
     model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
     messages: [
@@ -135,6 +144,10 @@ exports.askAI = async (req, res) => {
       { role: 'system', content: 'You are a helpful AI assistant for a Digital Health Record application. You process data but do not learn or maintain history.' },
       { role: 'user', content: message }
     ];
+
+    if (!openai) {
+      return res.status(503).json({ message: 'AI service is currently unavailable' });
+    }
 
     const response = await openai.chat.completions.create({
       model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
@@ -214,6 +227,10 @@ exports.chatAboutSchemes = async (req, res) => {
       { role: 'user', content: message }
     ];
 
+    if (!openai) {
+      return res.status(503).json({ message: 'AI service is currently unavailable' });
+    }
+
     const response = await openai.chat.completions.create({
       model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
       messages,
@@ -266,6 +283,10 @@ exports.getHealthInsights = async (req, res) => {
       {"title": "insight title", "message": "insight message", "type": "success"},
       ...
     ]`;
+
+    if (!openai) {
+      return res.json({ insights: [] });
+    }
 
     const response = await openai.chat.completions.create({
       model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
@@ -345,6 +366,15 @@ exports.generateClinicalNotes = async (req, res) => {
     - Be concise and accurate based on the provided static data.
     - Return ONLY valid JSON with no markdown and no extra commentary.
     `;
+
+    if (!openai) {
+      const fallback = normalizeClinicalOutput(null, context);
+      return res.json({
+        ...fallback,
+        generatedBy: 'fallback',
+        warning: 'AI service unavailable. Generated a safe fallback draft.'
+      });
+    }
 
     try {
       const response = await openai.chat.completions.create({
