@@ -137,6 +137,16 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
     }
   };
 
+  const handleCopyProfileLink = async () => {
+    if (!profile?.blockchainId) {
+       // if blockchainId is not available, we can't generate link
+       return;
+    }
+    const shareLink = `${window.location.origin}/?publicProfile=${encodeURIComponent(profile.blockchainId)}`;
+    await navigator.clipboard.writeText(shareLink);
+    alert('Public profile link copied to clipboard');
+  };
+
   const handleShare = async (recordId: string) => {
     try {
       const res: any = await api.post(`/records/${recordId}/qr`, {});
@@ -330,17 +340,29 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
     )}
 
       {/* QR Link Info */}
-      <Card className="bg-[#e8f5e9] border-[#0b6e4f]">
-        <div className="flex items-start gap-3">
-          <div className="text-2xl">🔗</div>
-          <div>
-            <h3 className="font-semibold text-[#0b6e4f] mb-1">
-              {t('allRecordsLinked')}
-            </h3>
-            <p className="text-sm text-foreground">
-              {t('qrLinkDesc')}
-            </p>
+      <Card 
+        className="bg-[#e8f5e9] border-[#0b6e4f] cursor-pointer hover:bg-[#dcf3e1] transition-colors"
+        onClick={() => onNavigate && onNavigate('qr')}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl mt-1">🔗</div>
+            <div>
+              <h3 className="font-semibold text-[#0b6e4f] mb-1">
+                {t('allRecordsLinked')}
+              </h3>
+              <p className="text-sm text-foreground">
+                {t('qrLinkDesc')}
+              </p>
+            </div>
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-[#0b6e4f] hover:text-[#0b6e4f] hover:bg-white/50"
+          >
+            {t('view')} →
+          </Button>
         </div>
       </Card>
 

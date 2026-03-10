@@ -217,7 +217,10 @@ exports.getRecordByQR = async (req, res, next) => {
     }
 
     if (payload.type === 'patient_qr') {
-      const records = await HealthRecord.find({ patient: payload.patientId }).sort({ createdAt: -1 }).select('-__v');
+      const records = await HealthRecord.find({ 
+        patient: payload.patientId,
+        consentEnabled: true 
+      }).sort({ createdAt: -1 }).select('-__v');
       const patient = await Patient.findById(payload.patientId).select('name abhaId');
       return res.json({ type: 'patient', records, patient });
     }

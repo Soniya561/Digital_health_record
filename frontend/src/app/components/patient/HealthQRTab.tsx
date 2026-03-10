@@ -46,7 +46,21 @@ export function HealthQRTab({ user }: { user: any }) {
 
   const handleShare = async () => {
     if (!shareUrl) return;
-    window.prompt('Copy this link:', shareUrl);
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'My Health QR Profile',
+          text: `View my verified health profile secured by Blockchain`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Profile link copied to clipboard');
+    }
   };
 
   return (

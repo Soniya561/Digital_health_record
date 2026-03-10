@@ -182,7 +182,10 @@ exports.getPublicProfile = async (req, res, next) => {
     const patient = await Patient.findOne({ blockchainId }).select('name age gender bloodGroup blockchainId abhaId allergies emergencyContact dob photoUrl');
     if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
-    const healthRecords = await HealthRecord.find({ patient: patient._id }).sort({ createdAt: -1 });
+    const healthRecords = await HealthRecord.find({ 
+      patient: patient._id, 
+      consentEnabled: true 
+    }).sort({ createdAt: -1 });
     const appointments = await Appointment.find({ patient: patient._id }).sort({ date: -1 });
 
     res.json({
