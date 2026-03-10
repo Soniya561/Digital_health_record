@@ -9,6 +9,8 @@ interface InputProps {
   icon?: React.ReactNode;
   label?: string;
   required?: boolean;
+  disabled?: boolean;
+  accept?: string;
 }
 
 export function Input({
@@ -20,6 +22,8 @@ export function Input({
   icon,
   label,
   required = false,
+  disabled = false,
+  accept,
 }: InputProps) {
   return (
     <div className="w-full">
@@ -40,6 +44,8 @@ export function Input({
           value={value}
           onChange={onChange}
           required={required}
+          disabled={disabled}
+          accept={accept}
           className={`w-full px-4 py-3 ${icon ? 'pl-10' : ''} bg-input-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${className}`}
         />
       </div>

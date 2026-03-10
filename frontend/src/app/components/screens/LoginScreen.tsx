@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, QrCode, Mic, Heart, Users, Activity, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -53,6 +53,16 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [loginPhoto, setLoginPhoto] = useState<File | null>(null);
+  const [loginPhotoPreview, setLoginPhotoPreview] = useState<string>('');
+
+  useEffect(() => {
+    return () => {
+      if (loginPhotoPreview) {
+        URL.revokeObjectURL(loginPhotoPreview);
+      }
+    };
+  }, [loginPhotoPreview]);
 
   const { isListening, error: voiceError, startListening } = useVoice((result) => {
     if (otpSent) {
@@ -66,6 +76,10 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   }, language);
 
   const handleSendOTP = async () => {
+    if (!loginPhoto) {
+      setError('Please upload your photo first');
+      return;
+    }
     if (!selectedRole) {
       setError('Please select a role first');
       return;
@@ -88,6 +102,10 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   };
 
   const handleEmailLogin = async (role: string) => {
+    if (!loginPhoto) {
+      setError('Please upload your photo first');
+      return;
+    }
     if (!otpSent) {
       setError('Please send OTP first');
       return;
@@ -103,6 +121,8 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
       const response = await api.post('/auth/verify-otp', { email, otp });
       localStorage.setItem('token', response.token);
       localStorage.setItem('role', response.role);
+      const photoSaved = await persistLoginPhotoIfNeeded(response.role);
+      if (!photoSaved) return;
       onLogin(response.role);
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -112,6 +132,10 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   };
 
   const handleQRLogin = async (role: string) => {
+    if (!loginPhoto) {
+      setError('Please upload your photo first');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -119,12 +143,53 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
       const response = await api.post('/auth/login', { email: demoEmail, password: 'password123' });
       localStorage.setItem('token', response.token);
       localStorage.setItem('role', role);
+      const photoSaved = await persistLoginPhotoIfNeeded(role);
+      if (!photoSaved) return;
       onLogin(role);
     } catch (err: any) {
       setError(err.message || 'QR sign-in failed');
     } finally {
       setLoading(false);
     }
+  };
+
+  const persistLoginPhotoIfNeeded = async (role: string) => {
+    if (role?.toLowerCase() !== 'patient' || !loginPhoto) {
+      return true;
+    }
+
+    try {
+      const me = await api.get('/patients/me');
+      if (me?.user?.photoUrl) {
+        return true;
+      }
+
+      await api.upload('/patients/me/photo', loginPhoto);
+      return true;
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to save profile photo';
+      if (msg.toLowerCase().includes('cannot be changed once uploaded')) {
+        return true;
+      }
+      setError(msg);
+      return false;
+    }
+  };
+
+  const handleLoginPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file');
+      return;
+    }
+    setError(null);
+    setLoginPhoto(file);
+    if (loginPhotoPreview) {
+      URL.revokeObjectURL(loginPhotoPreview);
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setLoginPhotoPreview(previewUrl);
   };
 
   return (
@@ -182,7 +247,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
           >
             <div className="relative">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1698465281093-9f09159733b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBoZWFsdGhjYXJlJTIwd29ya2VyJTIwZG9jdG9yJTIwcGF0aWVudHxlbnwxfHx8fDE3Njk4MzYyODl8MA&ixlib=rb-4.1.0&q=80&w=1080"
+                src={loginPhotoPreview || "https://images.unsplash.com/photo-1698465281093-9f09159733b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBoZWFsdGhjYXJlJTIwd29ya2VyJTIwZG9jdG9yJTIwcGF0aWVudHxlbnwxfHx8fDE3Njk4MzYyODl8MA&ixlib=rb-4.1.0&q=80&w=1080"}
                 alt="Healthcare in Kerala"
                 className="rounded-2xl shadow-2xl"
               />
@@ -229,6 +294,22 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
 
               {!selectedRole ? (
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-300">Upload your photo first:</p>
+                    <Input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      onChange={handleLoginPhotoChange}
+                      label="Photo"
+                    />
+                    {loginPhotoPreview && (
+                      <img
+                        src={loginPhotoPreview}
+                        alt="Uploaded preview"
+                        className="w-20 h-20 rounded-full object-cover border border-zinc-700"
+                      />
+                    )}
+                  </div>
                   <p className="text-sm text-gray-400 mb-2">Select your role to continue:</p>
                   <div className="grid grid-cols-1 gap-3">
                     <Button
@@ -316,6 +397,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                         onChange={(e) => setEmail(e.target.value)}
                         icon={<Mail className="w-5 h-5" />}
                         label="Gmail Address"
+                        disabled={!loginPhoto}
                       />
 
                       {otpSent && (
@@ -330,6 +412,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                             onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             icon={<Shield className="w-5 h-5" />}
                             label="OTP"
+                            disabled={!loginPhoto}
                           />
                         </motion.div>
                       )}
@@ -352,7 +435,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                         size="lg"
                         fullWidth
                         onClick={otpSent ? () => handleEmailLogin(selectedRole) : handleSendOTP}
-                        disabled={loading}
+                        disabled={loading || !loginPhoto}
                       >
                         {loading ? t('sending') : (otpSent ? t('continue') : t('sendOTP'))}
                       </Button>

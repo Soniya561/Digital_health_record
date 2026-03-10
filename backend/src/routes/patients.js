@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate } = require('../middlewares/auth');
 const ctrl = require('../controllers/patientController');
 const schemeCtrl = require('../controllers/schemeController');
+const upload = require('../middlewares/upload');
 
 // ✅ Patient profile
 router.get('/me', authenticate, ctrl.getMe);
@@ -12,6 +13,7 @@ router.get('/dashboard', authenticate, ctrl.getDashboard);
 
 // ✅ Update patient profile
 router.put('/me', authenticate, ctrl.updateProfile);
+router.post('/me/photo', authenticate, upload.single('file'), ctrl.uploadProfilePhoto);
 
 // ✅ Get QR Code
 router.get('/me/qr-code', authenticate, ctrl.getQRCode);

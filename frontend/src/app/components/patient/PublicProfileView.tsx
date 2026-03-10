@@ -131,7 +131,15 @@ export function PublicProfileView({ blockchainId, onClose, language }: PublicPro
           {/* Patient Header Card */}
           <Card className="bg-zinc-900/50 border-zinc-800 text-white p-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
-              <User className="w-24 h-24" />
+              {patient.photoUrl ? (
+                <img
+                  src={`${api.API_URL.replace('/api', '')}/uploads/${patient.photoUrl}`}
+                  alt={patient.name}
+                  className="w-24 h-24 object-cover rounded-full border border-zinc-700"
+                />
+              ) : (
+                <User className="w-24 h-24" />
+              )}
             </div>
             <div className="relative z-10">
               <h2 className="text-3xl font-bold mb-4">{patient.name}</h2>

@@ -23,6 +23,7 @@ const PatientSchema = new mongoose.Schema({
   chronicConditions: [{ type: String }],
   employmentType: { type: String },
   bloodGroup: { type: String },
+  photoUrl: { type: String },
   blockchainId: { type: String, unique: true, sparse: true },
   isProfileComplete: { type: Boolean, default: false },
   allergies: [{ type: String }],
@@ -70,7 +71,7 @@ PatientSchema.pre('save', async function (next) {
   }
   
   // Set isProfileComplete if all mandatory fields are present
-  if (!this.isProfileComplete && this.name && this.dob && this.gender && this.bloodGroup) {
+  if (!this.isProfileComplete && this.name && this.dob && this.gender && this.bloodGroup && this.photoUrl) {
     this.isProfileComplete = true;
   }
   next();

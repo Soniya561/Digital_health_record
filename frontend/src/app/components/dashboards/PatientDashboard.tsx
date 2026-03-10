@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { QrCode, FileText, MessageCircle, Calendar, Gift, AlertCircle, LogOut, Globe, User, Camera, CheckCircle2 } from 'lucide-react';
 import { HealthQRTab } from '@/app/components/patient/HealthQRTab';
@@ -34,8 +34,22 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
   const [activeTab, setActiveTab] = useState('qr');
   const [showScanDialog, setShowScanDialog] = useState(false);
   const [scanToken, setScanToken] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [isResolvingScan, setIsResolvingScan] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [user, setUser] = useState(initialUser);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [quickPhotoUploading, setQuickPhotoUploading] = useState(false);
+  const [quickPhotoError, setQuickPhotoError] = useState<string | null>(null);
+  const quickPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<any>(null);
+  const scanFrameRef = useRef<number | null>(null);
+  const processingScanRef = useRef(false);
   const [profileData, setProfileData] = useState({
     name: initialUser?.name || '',
     dob: '',
@@ -48,29 +62,216 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
     if (initialUser) {
       setUser(initialUser);
       setProfileData(prev => ({ ...prev, name: initialUser.name }));
-      if (!initialUser.isProfileComplete) {
+      if (!initialUser.isProfileComplete || !initialUser.photoUrl) {
         setShowProfileModal(true);
       }
     }
   }, [initialUser]);
 
+  useEffect(() => {
+    let mounted = true;
+    const refreshProfile = async () => {
+      try {
+        const res = await api.get('/patients/me');
+        if (!mounted || !res?.user) return;
+        setUser(res.user);
+        setProfileData((prev) => ({ ...prev, name: res.user.name || prev.name }));
+      } catch (err) {
+        console.error('Failed to refresh profile', err);
+      }
+    };
+    refreshProfile();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const stopScanning = () => {
+    if (scanFrameRef.current) {
+      cancelAnimationFrame(scanFrameRef.current);
+      scanFrameRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  useEffect(() => {
+    if (!showScanDialog) {
+      stopScanning();
+      setScanError(null);
+      setIsResolvingScan(false);
+      processingScanRef.current = false;
+    }
+  }, [showScanDialog]);
+
+  useEffect(() => {
+    return () => stopScanning();
+  }, []);
+
+  const normalizeScanValue = (value: string) => value.trim().replace(/\u2026/g, '...').replace(/^ID:\s*/i, '');
+
+  const parseScannedValue = (rawValue: string) => {
+    const cleaned = normalizeScanValue(rawValue);
+    try {
+      const parsedUrl = new URL(cleaned);
+      const publicProfile = parsedUrl.searchParams.get('publicProfile');
+      if (publicProfile) {
+        return { type: 'publicProfile' as const, value: decodeURIComponent(publicProfile) };
+      }
+
+      const qrToken = parsedUrl.searchParams.get('qr') || parsedUrl.searchParams.get('qrId');
+      if (qrToken) {
+        return { type: 'qrToken' as const, value: qrToken };
+      }
+
+      const qrPathMatch = parsedUrl.pathname.match(/\/qr\/([^/?#]+)/i);
+      if (qrPathMatch?.[1]) {
+        return { type: 'qrToken' as const, value: qrPathMatch[1] };
+      }
+
+      const publicProfilePathMatch = parsedUrl.pathname.match(/\/public-profile\/([^/?#]+)/i);
+      if (publicProfilePathMatch?.[1]) {
+        return { type: 'publicProfile' as const, value: decodeURIComponent(publicProfilePathMatch[1]) };
+      }
+    } catch {
+      // Not a URL; continue with token/id parsing.
+    }
+
+    if (/^0x[a-fA-F0-9.]+$/.test(cleaned)) {
+      return { type: 'publicProfile' as const, value: cleaned };
+    }
+
+    return { type: 'qrToken' as const, value: cleaned };
+  };
+
+  const navigateFromScanValue = (rawValue: string) => {
+    const parsed = parseScannedValue(rawValue);
+    if (!parsed.value) {
+      throw new Error('Empty QR value');
+    }
+
+    if (parsed.type === 'publicProfile') {
+      window.location.href = `/?publicProfile=${encodeURIComponent(parsed.value)}`;
+      return;
+    }
+
+    window.location.href = `/qr/${encodeURIComponent(parsed.value)}`;
+  };
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setProfileError(null);
+    setSavingProfile(true);
     try {
-      const res = await api.put('/patients/me', profileData);
+      if (!user?.photoUrl) {
+        if (!profilePhoto) {
+          setProfileError('Please upload your profile photo.');
+          return;
+        }
+        const uploadRes = await api.upload('/patients/me/photo', profilePhoto);
+        if (uploadRes?.photoUrl) {
+          setUser((prev: any) => ({ ...(prev || {}), photoUrl: uploadRes.photoUrl }));
+        }
+      }
+
+      const payload = {
+        ...profileData,
+        abhaId: profileData.abhaId?.trim() || undefined,
+      };
+      const res = await api.put('/patients/me', payload);
       if (res.ok) {
         setUser(res.user);
         setShowProfileModal(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update profile', err);
+      setProfileError(err?.message || 'Failed to save profile details. Please try again.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
   const handleScanSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (scanToken) {
-      window.location.href = `/qr/${scanToken}`;
+    setScanError(null);
+    try {
+      if (!scanToken.trim()) {
+        setScanError('Please enter or scan a QR value.');
+        return;
+      }
+      navigateFromScanValue(scanToken);
+    } catch (err: any) {
+      setScanError(err?.message || 'Unable to process QR value');
+    }
+  };
+
+  const resolveAndNavigate = async (value: string) => {
+    if (processingScanRef.current) return;
+    processingScanRef.current = true;
+    setIsResolvingScan(true);
+    setScanError(null);
+    try {
+      navigateFromScanValue(value);
+    } catch (err: any) {
+      setScanError(err?.message || 'Failed to read QR value');
+    } finally {
+      setIsResolvingScan(false);
+      processingScanRef.current = false;
+    }
+  };
+
+  const handleScanWithCamera = async () => {
+    setScanError(null);
+
+    if (!(window as any).BarcodeDetector) {
+      setScanError('Camera QR scan is not supported in this browser. Paste QR link/token below.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setIsScanning(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      detectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+
+      const scanFrame = async () => {
+        if (!videoRef.current || !detectorRef.current || processingScanRef.current) {
+          scanFrameRef.current = requestAnimationFrame(scanFrame);
+          return;
+        }
+
+        try {
+          const barcodes = await detectorRef.current.detect(videoRef.current);
+          if (barcodes && barcodes.length > 0) {
+            const rawValue = barcodes[0]?.rawValue;
+            if (rawValue) {
+              await resolveAndNavigate(rawValue);
+              return;
+            }
+          }
+        } catch {
+          // Continue scanning.
+        }
+
+        scanFrameRef.current = requestAnimationFrame(scanFrame);
+      };
+
+      scanFrameRef.current = requestAnimationFrame(scanFrame);
+    } catch (err: any) {
+      stopScanning();
+      setScanError(err?.message || 'Unable to access camera');
     }
   };
 
@@ -78,6 +279,24 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
     const sanitizedNumber = number.replace(/[^\d+]/g, '');
     if (!sanitizedNumber) return;
     window.location.href = `tel:${sanitizedNumber}`;
+  };
+
+  const handleQuickPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQuickPhotoError(null);
+    setQuickPhotoUploading(true);
+    try {
+      const uploadRes = await api.upload('/patients/me/photo', file);
+      if (uploadRes?.photoUrl) {
+        setUser((prev: any) => ({ ...(prev || {}), photoUrl: uploadRes.photoUrl }));
+      }
+    } catch (err: any) {
+      setQuickPhotoError(err?.message || 'Failed to upload profile photo.');
+    } finally {
+      setQuickPhotoUploading(false);
+      e.target.value = '';
+    }
   };
 
   const tabs = [
@@ -104,12 +323,42 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center overflow-hidden">
+                {user?.photoUrl ? (
+                  <img
+                    src={`${api.API_URL.replace('/api', '')}/uploads/${user.photoUrl}`}
+                    alt={user?.name || 'User'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-6 h-6 text-white" />
+                )}
               </div>
               <div>
                 <h1 className="text-2xl font-bold">{t('patientPortal')}</h1>
                 <p className="text-sm opacity-90">{t('welcomeUser')}, {user?.name || 'User'}</p>
+                {!user?.photoUrl && (
+                  <div className="mt-2">
+                    <input
+                      ref={quickPhotoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      className="hidden"
+                      onChange={handleQuickPhotoChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => quickPhotoInputRef.current?.click()}
+                      disabled={quickPhotoUploading}
+                      className="text-xs px-3 py-1.5 rounded-md bg-white/20 hover:bg-white/30 border border-white/30"
+                    >
+                      {quickPhotoUploading ? 'Uploading photo...' : 'Upload Profile Photo'}
+                    </button>
+                    {quickPhotoError && (
+                      <p className="text-xs text-red-200 mt-1">{quickPhotoError}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -213,6 +462,16 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
           
           <form onSubmit={handleProfileSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Profile Photo (Required, cannot be changed later)</label>
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={(e) => setProfilePhoto(e.target.files?.[0] || null)}
+                className="bg-zinc-900 border-zinc-800 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">Full Name (Static after submit)</label>
               <Input 
                 required
@@ -278,9 +537,10 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
               />
             </div>
 
-            <Button type="submit" className="w-full bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white mt-4">
-              <CheckCircle2 className="w-4 h-4 mr-2" /> Save Profile & Generate Blockchain ID
+            <Button type="submit" disabled={savingProfile} className="w-full bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white mt-4">
+              <CheckCircle2 className="w-4 h-4 mr-2" /> {savingProfile ? 'Saving...' : 'Save Profile & Generate Blockchain ID'}
             </Button>
+            {profileError && <p className="text-sm text-red-400">{profileError}</p>}
           </form>
         </DialogContent>
       </Dialog>
@@ -297,14 +557,46 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
           </DialogHeader>
           
           <div className="flex flex-col items-center justify-center py-6">
-            <div className="w-48 h-48 border-2 border-dashed border-zinc-700 rounded-2xl flex flex-col items-center justify-center mb-6 bg-zinc-900/50">
-              <Camera className="w-12 h-12 text-zinc-600 mb-2" />
-              <p className="text-xs text-zinc-500">{t('Camera Preview')}</p>
+            <div className="w-56 h-56 border-2 border-dashed border-zinc-700 rounded-2xl flex flex-col items-center justify-center mb-4 bg-zinc-900/50 overflow-hidden">
+              {isScanning ? (
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                />
+              ) : (
+                <>
+                  <Camera className="w-12 h-12 text-zinc-600 mb-2" />
+                  <p className="text-xs text-zinc-500">Camera Preview</p>
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-2 w-full mb-4">
+              <Button
+                type="button"
+                onClick={handleScanWithCamera}
+                disabled={isScanning || isResolvingScan}
+                className="flex-1 bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white"
+              >
+                {isScanning ? 'Scanning...' : 'Open Camera'}
+              </Button>
+              {isScanning && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={stopScanning}
+                  className="border-zinc-700"
+                >
+                  Stop
+                </Button>
+              )}
             </div>
             
             <form onSubmit={handleScanSubmit} className="w-full space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">{t('Or enter token manually')}</label>
+                <label className="text-sm font-medium text-zinc-400">Or enter token/link manually</label>
                 <Input 
                   value={scanToken}
                   onChange={(e) => setScanToken(e.target.value)}
@@ -312,9 +604,10 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
                   className="bg-zinc-900 border-zinc-800 text-white"
                 />
               </div>
-              <Button type="submit" className="w-full bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white">
-                {t('View Record Details')}
+              <Button type="submit" disabled={isResolvingScan} className="w-full bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white">
+                {isResolvingScan ? 'Reading...' : 'View Record Details'}
               </Button>
+              {scanError && <p className="text-sm text-red-400">{scanError}</p>}
             </form>
           </div>
         </DialogContent>

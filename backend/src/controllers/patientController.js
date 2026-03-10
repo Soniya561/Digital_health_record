@@ -11,7 +11,11 @@ exports.getMe = async (req, res, next) => {
   try {
     const user = await Patient.findById(req.user.id).select('-password -__v');
     if (!user) return res.status(404).json({ error: 'Not found' });
-    res.json({ user });
+    const userObj = user.toObject();
+    if (!userObj.photoUrl) {
+      userObj.isProfileComplete = false;
+    }
+    res.json({ user: userObj });
   } catch (err) { next(err); }
 };
 
@@ -94,6 +98,9 @@ exports.updateProfile = async (req, res, next) => {
         // Handle empty strings for Date fields or other specific types
         if ((k === 'dob' || k === 'gender') && req.body[k] === '') {
           updates[k] = null;
+        } else if (k === 'abhaId' && req.body[k] === '') {
+          // Prevent duplicate-key issues on unique sparse index for empty string values
+          updates[k] = undefined;
         } else if (req.body[k] !== undefined) {
           // Once profile is complete, name, bloodGroup and abhaId become static
           if (user.isProfileComplete && (k === 'bloodGroup' || k === 'abhaId' || k === 'name')) {
@@ -110,7 +117,7 @@ exports.updateProfile = async (req, res, next) => {
     });
 
     // If it's the first time completing the profile
-    if (!user.isProfileComplete && user.dob && user.bloodGroup && user.gender) {
+    if (!user.isProfileComplete && user.dob && user.bloodGroup && user.gender && user.photoUrl) {
       user.isProfileComplete = true;
     }
 
@@ -119,6 +126,33 @@ exports.updateProfile = async (req, res, next) => {
   } catch (err) {
     console.error('Update Profile Error:', err);
     res.status(400).json({ error: err.message || 'Failed to update profile' });
+  }
+};
+
+// Upload profile photo (one time only)
+exports.uploadProfilePhoto = async (req, res, next) => {
+  try {
+    const user = await Patient.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+
+    if (user.photoUrl) {
+      return res.status(400).json({ error: 'Profile photo cannot be changed once uploaded' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Photo file is required' });
+    }
+
+    if (!req.file.mimetype || !req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Only image files are allowed for profile photo' });
+    }
+
+    user.photoUrl = req.file.filename;
+    await user.save();
+
+    res.json({ ok: true, photoUrl: user.photoUrl, user });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -145,7 +179,7 @@ exports.getQRCode = async (req, res, next) => {
 exports.getPublicProfile = async (req, res, next) => {
   try {
     const { blockchainId } = req.params;
-    const patient = await Patient.findOne({ blockchainId }).select('name age gender bloodGroup blockchainId abhaId allergies emergencyContact dob');
+    const patient = await Patient.findOne({ blockchainId }).select('name age gender bloodGroup blockchainId abhaId allergies emergencyContact dob photoUrl');
     if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
     const healthRecords = await HealthRecord.find({ patient: patient._id }).sort({ createdAt: -1 });
