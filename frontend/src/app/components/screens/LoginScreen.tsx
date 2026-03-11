@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, QrCode, Mic, Heart, Users, Activity, Shield, Loader2 } from 'lucide-react';
+import { Mail, QrCode, Mic, Heart, Users, Activity, Shield, Loader2, Camera } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
@@ -245,12 +245,28 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="relative">
-              <ImageWithFallback
-                src={loginPhotoPreview || "https://images.unsplash.com/photo-1698465281093-9f09159733b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBoZWFsdGhjYXJlJTIwd29ya2VyJTIwZG9jdG9yJTIwcGF0aWVudHxlbnwxfHx8fDE3Njk4MzYyODl8MA&ixlib=rb-4.1.0&q=80&w=1080"}
-                alt="Healthcare in Kerala"
-                className="rounded-2xl shadow-2xl"
-              />
+            <div className="relative group">
+              {loginPhotoPreview ? (
+                <img
+                  src={loginPhotoPreview}
+                  alt="Login Profile"
+                  className="rounded-2xl shadow-2xl w-full aspect-square object-cover"
+                />
+              ) : (
+                <div 
+                  className="w-full aspect-square bg-zinc-900/50 border-2 border-dashed border-zinc-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-800/50 transition-all"
+                  onClick={() => {
+                    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                    if (input) input.click();
+                  }}
+                >
+                  <div className="p-6 bg-zinc-800/50 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                    <Camera className="w-12 h-12 text-[#10b981]" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Upload Your Image</h3>
+                  <p className="text-zinc-400 text-sm">To verify your identity and continue</p>
+                </div>
+              )}
               <div className="absolute bottom-6 left-6 right-6 bg-zinc-900/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-zinc-800">
                 <p className="text-sm font-medium text-[#10b981]">
                   {t('empoweringMigrantWorkers')}

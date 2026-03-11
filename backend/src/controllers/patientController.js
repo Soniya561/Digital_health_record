@@ -188,10 +188,17 @@ exports.getPublicProfile = async (req, res, next) => {
     }).sort({ createdAt: -1 });
     const appointments = await Appointment.find({ patient: patient._id }).sort({ date: -1 });
 
+    // Generate QR code for the public profile URL
+    const origin = req.get('origin') || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || origin;
+    const publicUrl = `${frontendUrl}/?publicProfile=${encodeURIComponent(blockchainId)}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(publicUrl);
+
     res.json({
       patient,
       healthRecords,
-      appointments
+      appointments,
+      qrCodeDataUrl
     });
   } catch (err) { next(err); }
 };
