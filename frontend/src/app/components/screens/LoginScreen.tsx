@@ -204,27 +204,6 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-8">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  <div>
-                    <div className="text-2xl font-bold">2.5L+</div>
-                    <div className="text-xs opacity-90">{t('livesSupported')}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  <div>
-                    <div className="text-2xl font-bold">150+</div>
-                    <div className="text-xs opacity-90">{t('hospitalsConnected')}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Heart className="w-5 h-5" />
-                  <div>
-                    <div className="text-2xl font-bold">5M+</div>
-                    <div className="text-xs opacity-90">{t('recordsDigitized')}</div>
-                  </div>
-                </div>
               </div>
               <button
                 onClick={() => setShowImpactStats(false)}

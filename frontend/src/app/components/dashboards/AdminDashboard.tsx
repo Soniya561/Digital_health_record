@@ -122,7 +122,6 @@ export function AdminDashboard({ user, onLogout, language = 'en' }: AdminDashboa
       <div className="bg-zinc-900/80 backdrop-blur-xl border-t border-zinc-800 mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-400">
           <p>{t('keralaHealthPortal')} • {t('administrativeInterface')}</p>
-          <p className="mt-1 text-xs">{t('sihInitiative')}</p>
         </div>
       </div>
 

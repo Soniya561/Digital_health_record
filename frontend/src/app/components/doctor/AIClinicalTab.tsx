@@ -140,7 +140,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-foreground">AI Clinical Assistant</h2>
-            <p className="text-sm text-muted-foreground">Generate notes and prescriptions from appointment context</p>
+            <p className="text-sm text-zinc-800 font-medium">Generate notes and prescriptions from appointment context</p>
           </div>
         </div>
       </Card>

@@ -130,12 +130,12 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
       </Card>
 
       {/* Cross-State Records Banner */}
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+      <Card className="bg-yellow-50 border-yellow-200 shadow-sm">
         <div className="flex items-start gap-3">
           <div className="text-2xl">🌍</div>
           <div>
-            <h3 className="font-semibold text-foreground mb-1">Cross-State Records Available</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="font-semibold text-yellow-900 mb-1">Cross-State Records Available</h3>
+            <p className="text-sm text-yellow-800/80">
               This patient's records from other states are accessible through the unified health network.
             </p>
           </div>
@@ -198,6 +198,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
                     </div>
 
                     <div className="text-sm text-muted-foreground mb-3">
+                      <p>🆔 {patientIdentifier || 'Unknown'}</p>
                       <p>🏥 {record.hospital || 'Not specified'}</p>
                       <p>👨‍⚕️ {record.doctor || 'Not specified'}</p>
                     </div>

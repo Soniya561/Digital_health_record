@@ -120,7 +120,7 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
               <p className="font-semibold text-foreground">
                 {patient?.name || t('Unknown Patient')}
               </p>
-              <p className="text-sm text-muted-foreground">{t('id')}: {patientId || '-'}</p>
+              <p className="text-sm text-foreground font-medium">{t('id')}: {patientId || '-'}</p>
             </div>
             <Badge variant={patientId.trim() ? 'success' : 'warning'}>
               {patientId.trim() ? t('Selected') : t('Required')}
@@ -198,7 +198,7 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
                     <div>
                       <p className="font-semibold text-foreground">{selectedFile.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • {t('Patient ID')}: {patientId}
                       </p>
                     </div>
                   </div>

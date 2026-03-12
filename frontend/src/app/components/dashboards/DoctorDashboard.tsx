@@ -44,10 +44,6 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-bold">{t('doctorPortal')}</h1>
-                <p className="text-sm opacity-90">{t('welcomeUser')}, {user?.name || 'Doctor'}</p>
-              </div>
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center overflow-hidden border-2 border-white/30 shadow-inner">
                 {user?.photoUrl ? (
                   <img
@@ -58,6 +54,10 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
                 ) : (
                   <User className="w-6 h-6 text-white" />
                 )}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">{t('doctorPortal')}</h1>
+                <p className="text-sm opacity-90">{t('welcomeUser')}, {user?.name || 'Doctor'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -145,7 +145,6 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
       <div className="bg-zinc-900/80 backdrop-blur-xl border-t border-zinc-800 mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-400">
           <p>{t('keralaHealthPortal')} • {t('healthcareProfessionalInterface')}</p>
-          <p className="mt-1 text-xs">{t('sihInitiative')}</p>
         </div>
       </div>
 
