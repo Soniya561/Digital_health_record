@@ -5,6 +5,15 @@ export function useVoice(onResult: (result: string) => void, language: string = 
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
+  const host = typeof window !== 'undefined' ? (window.location.hostname || 'localhost') : 'localhost';
+  const port = typeof window !== 'undefined' ? window.location.port : '';
+  const path = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/';
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  const isSecureContextOk = typeof window !== 'undefined' ? (window.isSecureContext || isLocalHost) : true;
+  const secureOriginUrl = typeof window !== 'undefined'
+    ? `https://${host}${port ? `:${port}` : ''}${path}`
+    : '';
+
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -16,10 +25,6 @@ export function useVoice(onResult: (result: string) => void, language: string = 
     if (isListening) {
       return;
     }
-
-    const host = window.location.hostname || 'localhost';
-    const isLocalHost =
-      host === 'localhost' || host === '127.0.0.1' || host === '::1';
 
     if (!window.isSecureContext && !isLocalHost) {
       setError(`Voice input needs HTTPS on ${host}. Open the app on localhost or use HTTPS.`);
@@ -94,7 +99,7 @@ export function useVoice(onResult: (result: string) => void, language: string = 
       console.error('Speech recognition error:', e);
       setIsListening(false);
     }
-  }, [isListening, language, onResult]);
+  }, [isListening, language, onResult, isLocalHost]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -102,5 +107,5 @@ export function useVoice(onResult: (result: string) => void, language: string = 
     }
   }, []);
 
-  return { isListening, error, startListening, stopListening };
+  return { isListening, error, startListening, stopListening, secureOriginUrl, isSecureContextOk };
 }

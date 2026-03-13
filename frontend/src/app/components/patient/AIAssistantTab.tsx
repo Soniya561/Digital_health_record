@@ -106,7 +106,7 @@ export function AIAssistantTab() {
     }
   };
 
-  const { isListening, startListening } = useVoice((result) => {
+  const { isListening, startListening, error: voiceError, secureOriginUrl, isSecureContextOk } = useVoice((result) => {
     setInputMessage(result);
     // Automatically send if voice result received
     setTimeout(() => handleSendMessage(result), 500);
@@ -326,6 +326,25 @@ export function AIAssistantTab() {
         </div>
 
         {/* Input */}
+        {!isSecureContextOk && (
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex items-center justify-between gap-3">
+            <span>Voice input needs HTTPS on this device.</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (secureOriginUrl) window.location.href = secureOriginUrl;
+              }}
+            >
+              Open HTTPS
+            </Button>
+          </div>
+        )}
+        {voiceError && (
+          <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            Voice input: {voiceError}
+          </div>
+        )}
         <div className="flex gap-2">
           <button 
             onClick={startListening}

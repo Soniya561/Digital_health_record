@@ -80,7 +80,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
     }
   }, [loginMethod]);
 
-  const { isListening, error: voiceError, startListening } = useVoice((result) => {
+  const { isListening, error: voiceError, startListening, secureOriginUrl, isSecureContextOk } = useVoice((result) => {
     if (otpSent) {
       const otpValue = result.replace(/\D/g, '').slice(0, 6);
       if (otpValue) setOtp(otpValue);
@@ -288,6 +288,11 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   const handleScan = async () => {
     setScanError(null);
 
+    if (!isSecureContextOk) {
+      setScanError(`Camera access needs HTTPS. Open the app on localhost or use HTTPS.`);
+      return;
+    }
+
     if (!(window as any).BarcodeDetector) {
       setScanError('Camera QR scan is not supported in this browser. Paste QR link/token below.');
       return;
@@ -433,6 +438,20 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
               {voiceError && (
                 <div className="mb-4 p-3 bg-amber-900/40 border border-amber-500 rounded-lg text-amber-100 text-sm">
                   Voice input: {voiceError}
+                </div>
+              )}
+              {!isSecureContextOk && (
+                <div className="mb-4 p-3 bg-blue-900/40 border border-blue-500 rounded-lg text-blue-100 text-sm flex items-center justify-between gap-3">
+                  <span>Voice and camera need HTTPS on this device.</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (secureOriginUrl) window.location.href = secureOriginUrl;
+                    }}
+                  >
+                    Open HTTPS
+                  </Button>
                 </div>
               )}
 
