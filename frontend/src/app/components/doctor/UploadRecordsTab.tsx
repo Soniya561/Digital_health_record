@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Upload, FileText, Camera, Sparkles, Check } from 'lucide-react';
+import { Upload, FileText, Camera, Sparkles, Check, X, Loader2 } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -38,12 +38,68 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
   const [uploaded, setUploaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Camera states
+  const [isCapturing, setIsCapturing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   useEffect(() => {
     const nextIdentifier = resolvePatientIdentifier(patient);
     if (nextIdentifier) {
       setPatientId(nextIdentifier);
     }
   }, [patient]);
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
+  const startCamera = async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setIsCapturing(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err: any) {
+      setError(err.message || 'Unable to access camera');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCapturing(false);
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setSelectedFile(file);
+            setTitle(`Photo ${new Date().toLocaleString()}`);
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.9);
+      }
+    }
+  };
 
   const recordTypes = [
     { id: 'prescription', name: 'Prescription', icon: '💊' },
@@ -156,33 +212,51 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
         
         {!selectedFile ? (
           <div className="space-y-4">
-            <motion.label
-              htmlFor="file-upload"
-              className="block border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer hover:border-[#0b6e4f] hover:bg-accent transition-all"
-              whileHover={{ scale: 1.01 }}
-            >
-              <Upload className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="font-semibold text-foreground mb-1">
-                {t('Drop files here or click to upload')}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t('Supports PDF, JPG, PNG up to 10MB')}
-              </p>
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                onChange={handleFileSelect}
-                accept=".pdf,.jpg,.jpeg,.png"
-              />
-            </motion.label>
+            {isCapturing ? (
+              <div className="space-y-4">
+                <div className="relative aspect-video bg-black rounded-xl overflow-hidden border-2 border-purple-500">
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                    <Button onClick={takePhoto} variant="primary" className="rounded-full w-12 h-12 p-0 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full border-4 border-white" />
+                    </Button>
+                    <Button onClick={stopCamera} variant="outline" className="rounded-full w-12 h-12 p-0 flex items-center justify-center bg-black/50 border-white text-white">
+                      <X className="w-6 h-6" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <motion.label
+                htmlFor="file-upload"
+                className="block border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer hover:border-[#0b6e4f] hover:bg-accent transition-all"
+                whileHover={{ scale: 1.01 }}
+              >
+                <Upload className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <p className="font-semibold text-foreground mb-1">
+                  {t('Drop files here or click to upload')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t('Supports PDF, JPG, PNG up to 10MB')}
+                </p>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+              </motion.label>
+            )}
 
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-3">{t('Or')}</p>
-              <Button variant="outline" icon={<Camera className="w-4 h-4" />}>
-                {t('Take Photo')}
-              </Button>
-            </div>
+            {!isCapturing && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-3">{t('Or')}</p>
+                <Button onClick={startCamera} variant="outline" icon={<Camera className="w-4 h-4" />}>
+                  {t('Take Photo')}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -194,7 +268,13 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <FileText className="w-8 h-8 text-[#0b6e4f]" />
+                    {selectedFile.type.startsWith('image/') ? (
+                      <div className="w-12 h-12 rounded overflow-hidden border border-border bg-black">
+                        <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <FileText className="w-8 h-8 text-[#0b6e4f]" />
+                    )}
                     <div>
                       <p className="font-semibold text-foreground">{selectedFile.name}</p>
                       <p className="text-sm text-muted-foreground">
@@ -211,14 +291,14 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
                 </div>
 
                 {/* AI Auto-tagging */}
-                <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg mb-3">
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg mb-3">
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-sm text-foreground mb-1">
+                      <p className="font-semibold text-sm text-zinc-100 mb-1">
                         {t('AI Auto-Tagging')}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-zinc-400">
                         {t('Document analyzed and tagged automatically')}
                       </p>
                     </div>
@@ -292,24 +372,6 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
             )}
           </div>
         )}
-      </Card>
-
-      {/* AI Features */}
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-        <div className="flex items-start gap-3">
-          <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground mb-1">AI-Powered Features</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>✓ Automatic document classification</li>
-              <li>✓ Text extraction from images</li>
-              <li>✓ Multi-language support & auto-translation</li>
-              <li>✓ Smart tagging and indexing</li>
-            </ul>
-          </div>
-        </div>
       </Card>
 
       {/* Recent Uploads */}

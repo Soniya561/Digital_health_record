@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, QrCode, Mic, Heart, Users, Activity, Shield, Loader2, Camera } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -55,14 +55,30 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [loginPhoto, setLoginPhoto] = useState<File | null>(null);
   const [loginPhotoPreview, setLoginPhotoPreview] = useState<string>('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [manualInput, setManualInput] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<any>(null);
+  const scanFrameRef = useRef<number | null>(null);
+  const processingRef = useRef(false);
 
   useEffect(() => {
     return () => {
       if (loginPhotoPreview) {
         URL.revokeObjectURL(loginPhotoPreview);
       }
+      stopScanning();
     };
   }, [loginPhotoPreview]);
+
+  useEffect(() => {
+    if (loginMethod !== 'qr') {
+      stopScanning();
+    }
+  }, [loginMethod]);
 
   const { isListening, error: voiceError, startListening } = useVoice((result) => {
     if (otpSent) {
@@ -190,6 +206,139 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
     }
     const previewUrl = URL.createObjectURL(file);
     setLoginPhotoPreview(previewUrl);
+  };
+
+  const stopScanning = () => {
+    if (scanFrameRef.current) {
+      cancelAnimationFrame(scanFrameRef.current);
+      scanFrameRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  const normalizeShortId = (value: string) => value.trim().replace(/\u2026/g, '...').replace(/^ID:\s*/i, '');
+
+  const parseScannedValue = (rawValue: string) => {
+    const cleaned = normalizeShortId(rawValue);
+    try {
+      const parsedUrl = new URL(cleaned);
+      const publicProfile = parsedUrl.searchParams.get('publicProfile');
+      if (publicProfile) {
+        return { type: 'publicProfile' as const, value: decodeURIComponent(publicProfile) };
+      }
+
+      const qrToken = parsedUrl.searchParams.get('qr') || parsedUrl.searchParams.get('qrId');
+      if (qrToken) {
+        return { type: 'qrToken' as const, value: qrToken };
+      }
+
+      const pathMatch = parsedUrl.pathname.match(/\/qr\/([^/?#]+)/i);
+      if (pathMatch?.[1]) {
+        return { type: 'qrToken' as const, value: pathMatch[1] };
+      }
+      const publicPathMatch = parsedUrl.pathname.match(/\/public-profile\/([^/?#]+)/i);
+      if (publicPathMatch?.[1]) {
+        return { type: 'publicProfile' as const, value: publicPathMatch[1] };
+      }
+    } catch {
+      // not a URL, continue with direct parsing
+    }
+
+    if (/^0x[a-fA-F0-9.]+$/.test(cleaned)) {
+      return { type: 'publicProfile' as const, value: cleaned };
+    }
+
+    return { type: 'qrToken' as const, value: cleaned };
+  };
+
+  const openScannedResult = (rawValue: string) => {
+    const parsed = parseScannedValue(rawValue);
+    if (!parsed.value) {
+      throw new Error('Empty QR value');
+    }
+
+    if (parsed.type === 'publicProfile') {
+      window.location.href = `/public-profile/${encodeURIComponent(parsed.value)}`;
+      return;
+    }
+
+    window.location.href = `/qr/${encodeURIComponent(parsed.value)}`;
+  };
+
+  const resolveAndOpen = async (value: string) => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    setIsResolving(true);
+    setScanError(null);
+    try {
+      openScannedResult(value);
+      stopScanning();
+    } catch (err: any) {
+      setScanError(err?.message || 'Failed to read QR value');
+    } finally {
+      setIsResolving(false);
+      processingRef.current = false;
+    }
+  };
+
+  const handleScan = async () => {
+    setScanError(null);
+
+    if (!(window as any).BarcodeDetector) {
+      setScanError('Camera QR scan is not supported in this browser. Paste QR link/token below.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setIsScanning(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      detectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+
+      const scanFrame = async () => {
+        if (!videoRef.current || !detectorRef.current || processingRef.current) {
+          scanFrameRef.current = requestAnimationFrame(scanFrame);
+          return;
+        }
+
+        try {
+          const barcodes = await detectorRef.current.detect(videoRef.current);
+          if (barcodes && barcodes.length > 0) {
+            const rawValue = barcodes[0]?.rawValue;
+            if (rawValue) {
+              await resolveAndOpen(rawValue);
+              return;
+            }
+          }
+        } catch {
+          // keep scanning
+        }
+
+        scanFrameRef.current = requestAnimationFrame(scanFrame);
+      };
+
+      scanFrameRef.current = requestAnimationFrame(scanFrame);
+    } catch (err: any) {
+      stopScanning();
+      setScanError(err?.message || 'Unable to access camera');
+    }
+  };
+
+  const handleManualResolve = async () => {
+    await resolveAndOpen(manualInput);
   };
 
   return (
@@ -443,21 +592,73 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                       animate={{ opacity: 1 }}
                       className="text-center py-6"
                     >
-                      <div className="w-48 h-48 mx-auto bg-muted rounded-xl flex items-center justify-center mb-4">
-                        <QrCode className="w-24 h-24 text-muted-foreground" />
+                      <div className="w-56 h-56 mx-auto bg-muted rounded-xl flex items-center justify-center mb-4 overflow-hidden border-2 border-dashed border-zinc-700">
+                        {isScanning ? (
+                          <video
+                            ref={videoRef}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <QrCode className="w-24 h-24 text-muted-foreground" />
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-4">
                         {t('scanQRToSignIn')}
                       </p>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        fullWidth
-                        onClick={() => handleQRLogin(selectedRole)}
-                        disabled={loading}
-                      >
-                        {loading ? t('authenticating') : t('openCamera')}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          fullWidth
+                          onClick={handleScan}
+                          disabled={isScanning || isResolving}
+                          icon={isResolving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+                        >
+                          {isScanning ? 'Scanning...' : t('openCamera')}
+                        </Button>
+                        {isScanning && (
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={stopScanning}
+                          >
+                            Stop
+                          </Button>
+                        )}
+                      </div>
+                      <div className="space-y-2 mt-4">
+                        <p className="text-xs text-muted-foreground">Or paste QR link / token</p>
+                        <div className="flex gap-2">
+                          <Input
+                            type="text"
+                            placeholder="Paste QR value"
+                            value={manualInput}
+                            onChange={(e) => setManualInput(e.target.value)}
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={handleManualResolve}
+                            disabled={!manualInput.trim() || isResolving}
+                          >
+                            {isResolving ? 'Reading...' : 'Use'}
+                          </Button>
+                        </div>
+                      </div>
+                      {scanError && (
+                        <p className="text-sm text-red-500 mt-3">{scanError}</p>
+                      )}
+                      <div className="mt-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleQRLogin(selectedRole)}
+                          disabled={loading}
+                        >
+                          {loading ? t('authenticating') : 'Use Demo Login'}
+                        </Button>
+                      </div>
                     </motion.div>
                   )}
                 </div>
