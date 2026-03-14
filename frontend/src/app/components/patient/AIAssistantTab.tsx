@@ -48,7 +48,7 @@ export function AIAssistantTab() {
 
   useEffect(() => {
     fetchInsights();
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     if (shouldSpeakNext && messages.length > 0) {
@@ -96,7 +96,7 @@ export function AIAssistantTab() {
   const fetchInsights = async () => {
     setLoadingInsights(true);
     try {
-      const res = await api.get('/ai/insights');
+      const res = await api.get('/ai/insights', { params: { language } });
       setHealthInsights(res.insights || []);
     } catch (err: any) {
       console.error('Failed to fetch health insights', err);
@@ -146,7 +146,8 @@ export function AIAssistantTab() {
 
       const res = await api.post('/records/ai/chat', { 
         message: prompt,
-        history: history
+        history: history,
+        language: language
       });
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),

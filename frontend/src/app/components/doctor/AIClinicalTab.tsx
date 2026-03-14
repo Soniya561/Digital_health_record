@@ -4,6 +4,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { api } from '@/app/utils/api';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 type Prescription = {
   medicine: string;
@@ -38,6 +39,7 @@ interface AIClinicalTabProps {
 }
 
 export function AIClinicalTab({ patient }: AIClinicalTabProps) {
+  const { language } = useLanguage();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -111,7 +113,8 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
       const res = await api.post('/ai/clinical-chat', {
         messages: updatedMessages.map(({ role, content }) => ({ role, content })),
         patientId: patient?._id || patient?.id,
-        appointmentId: selectedAppointmentId
+        appointmentId: selectedAppointmentId,
+        language: language
       });
 
       if (res?.answer) {
@@ -135,7 +138,10 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
     setSuccess('');
     
     try {
-      const res = await api.post('/ai/clinical-notes', { appointmentId: selectedAppointmentId });
+      const res = await api.post('/ai/clinical-notes', { 
+        appointmentId: selectedAppointmentId,
+        language: language
+      });
       
       let responseContent = `**Clinical Summary:**\n${res.clinicalNotes}\n\n`;
       if (res.prescriptions && res.prescriptions.length > 0) {

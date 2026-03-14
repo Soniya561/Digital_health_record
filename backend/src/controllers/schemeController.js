@@ -13,6 +13,7 @@ exports.getAllSchemes = async (req, res, next) => {
 // Check eligibility for schemes
 exports.checkEligibility = async (req, res, next) => {
   try {
+    const { lang = 'en' } = req.query;
     const patient = await Patient.findById(req.user.id);
     if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
@@ -56,7 +57,7 @@ exports.checkEligibility = async (req, res, next) => {
     // Generate AI recommendations
     let aiRecommendations = null;
     try {
-      aiRecommendations = await generateSchemeRecommendations(patient);
+      aiRecommendations = await generateSchemeRecommendations(patient, lang);
     } catch (err) {
       console.error('Failed to generate AI recommendations in checkEligibility:', err);
     }
@@ -90,6 +91,7 @@ exports.applyToScheme = async (req, res, next) => {
 // Update profile for eligibility
 exports.updateEligibilityProfile = async (req, res, next) => {
   try {
+    const { lang = 'en' } = req.body;
     const allowed = ['dob', 'gender', 'income', 'isBPL', 'isMigrant', 'disabilities', 'chronicConditions', 'employmentType'];
     const updates = {};
     allowed.forEach(k => { if (k in req.body) updates[k] = req.body[k]; });
@@ -103,7 +105,7 @@ exports.updateEligibilityProfile = async (req, res, next) => {
     // Generate AI recommendations after update
     let aiRecommendations = null;
     try {
-      aiRecommendations = await generateSchemeRecommendations(user);
+      aiRecommendations = await generateSchemeRecommendations(user, lang);
     } catch (err) {
       console.error('Failed to generate AI recommendations in update:', err);
     }

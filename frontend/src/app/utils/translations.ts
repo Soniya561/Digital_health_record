@@ -90,7 +90,7 @@ export const translations: Record<string, any> = {
     private: "Private",
     shared: "Shared",
     allRecordsLinked: "All records linked to your Health QR",
-    qrLinkDesc: "Scan your QR code at any hospital to give doctors instant access to your shared medical history. You control what gets shared through consent toggles.",
+    qrLinkDesc: "Scan your QR code at any hospital or tap this link to give doctors instant access to your shared medical history. You control what gets shared through consent toggles.",
     // AI Assistant
     aiHealthAssistant: "AI Health Assistant",
     multilingualVoiceEnabled: "Multilingual • Voice-enabled • Available 24/7",

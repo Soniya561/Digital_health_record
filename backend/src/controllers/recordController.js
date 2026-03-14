@@ -384,7 +384,7 @@ exports.downloadRecord = async (req, res, next) => {
 // AI Chat endpoint (Uses real AI integration with patient records for context)
 exports.aiChat = async (req, res, next) => {
   try {
-    const { message, history } = req.body;
+    const { message, history, language = 'en' } = req.body;
     const userId = req.user.id;
     
     // Fetch user records to provide "context"
@@ -399,11 +399,16 @@ exports.aiChat = async (req, res, next) => {
         ${recordsSummary || 'No records found.'}
         
         Answer questions based on this context if applicable, but also answer general health questions like ChatGPT. 
-        Always remind users to consult with a doctor for serious medical issues.` 
+        Always remind users to consult with a doctor for serious medical issues.
+        IMPORTANT: You MUST respond in the following language: ${language}.` 
       },
       ...(history || []),
       { role: 'user', content: message }
     ];
+
+    if (!openai) {
+      return res.status(503).json({ error: 'AI service unavailable' });
+    }
 
     const completion = await openai.chat.completions.create({
       model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
