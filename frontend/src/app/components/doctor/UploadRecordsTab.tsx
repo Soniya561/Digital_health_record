@@ -168,6 +168,7 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
         hospital,
         doctor,
         patientId: trimmedPatientId,
+        language,
       });
       setUploaded(true);
       setTimeout(() => {

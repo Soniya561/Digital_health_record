@@ -64,6 +64,7 @@ export default function App() {
 
   const handleLanguageSelect = (lang: string) => {
     setLanguage(lang);
+    localStorage.setItem('language_locked', lang);
     setCurrentScreen('login');
   };
 
@@ -77,6 +78,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('language_locked');
     setUserRole(null);
     setUser(null);
     setCurrentScreen('language');

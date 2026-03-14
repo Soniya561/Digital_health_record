@@ -7,6 +7,40 @@ const { OpenAI } = require('openai');
 const { resolveDoctorFromUser } = require('../utils/doctorIdentity');
 const mongoose = require('mongoose');
 
+const LANGUAGE_NAMES = {
+  en: 'English',
+  ml: 'Malayalam',
+  hi: 'Hindi',
+  ta: 'Tamil',
+  bn: 'Bengali',
+  kn: 'Kannada'
+};
+
+function getLanguageName(code = 'en') {
+  return LANGUAGE_NAMES[code] || 'English';
+}
+
+async function translateText(text, languageName) {
+  if (!text || languageName === 'English') return text;
+  if (!process.env.AI_API_KEY || process.env.AI_API_KEY === 'replace_with_your_api_key') return text;
+  try {
+    const translationResponse = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a professional translator. Translate into ${languageName}. Do not leave any English words. Return only the translated text.`
+        },
+        { role: 'user', content: String(text) }
+      ]
+    });
+    return translationResponse.choices[0].message.content || text;
+  } catch (err) {
+    console.error('Translation failed', err);
+    return text;
+  }
+}
+
 const openai = new OpenAI({
   apiKey: process.env.AI_API_KEY,
   baseURL: process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1',
@@ -24,7 +58,7 @@ async function resolvePatientByIdentifier(rawIdentifier) {
   if (!identifier) return null;
 
   if (mongoose.Types.ObjectId.isValid(identifier)) {
-    const byId = await Patient.findById(identifier).select('_id name blockchainId abhaId email');
+    const byId = await Patient.findById(identifier).select('_id name blockchainId abhaId email preferredLanguage');
     if (byId) return byId;
   }
 
@@ -32,22 +66,22 @@ async function resolvePatientByIdentifier(rawIdentifier) {
     const [prefix, suffix] = identifier.split('...').map((part) => part.trim());
     if (prefix && suffix) {
       const fuzzyBlockchainRegex = new RegExp(`^${escapeRegex(prefix)}[a-fA-F0-9]*${escapeRegex(suffix)}$`, 'i');
-      const byShortBlockchain = await Patient.findOne({ blockchainId: fuzzyBlockchainRegex }).select('_id name blockchainId abhaId email');
+      const byShortBlockchain = await Patient.findOne({ blockchainId: fuzzyBlockchainRegex }).select('_id name blockchainId abhaId email preferredLanguage');
       if (byShortBlockchain) return byShortBlockchain;
     }
   }
 
   if (/^0x[a-fA-F0-9]+$/.test(identifier)) {
-    const byBlockchain = await Patient.findOne({ blockchainId: new RegExp(`^${escapeRegex(identifier)}$`, 'i') }).select('_id name blockchainId abhaId email');
+    const byBlockchain = await Patient.findOne({ blockchainId: new RegExp(`^${escapeRegex(identifier)}$`, 'i') }).select('_id name blockchainId abhaId email preferredLanguage');
     if (byBlockchain) return byBlockchain;
   }
 
   if (identifier.includes('@')) {
-    const byEmail = await Patient.findOne({ email: new RegExp(`^${escapeRegex(identifier)}$`, 'i') }).select('_id name blockchainId abhaId email');
+    const byEmail = await Patient.findOne({ email: new RegExp(`^${escapeRegex(identifier)}$`, 'i') }).select('_id name blockchainId abhaId email preferredLanguage');
     if (byEmail) return byEmail;
   }
 
-  const byAbha = await Patient.findOne({ abhaId: identifier }).select('_id name blockchainId abhaId email');
+  const byAbha = await Patient.findOne({ abhaId: identifier }).select('_id name blockchainId abhaId email preferredLanguage');
   if (byAbha) return byAbha;
 
   return null;
@@ -248,7 +282,7 @@ exports.createRecord = async (req, res, next) => {
 
     let resolvedPatient;
     if (userRole === 'PATIENT') {
-      resolvedPatient = await Patient.findById(userId).select('_id');
+      resolvedPatient = await Patient.findById(userId).select('_id preferredLanguage');
     } else {
       resolvedPatient = await resolvePatientByIdentifier(patientIdentifier);
     }
@@ -259,12 +293,22 @@ exports.createRecord = async (req, res, next) => {
       });
     }
 
+    const requestedLanguage = req.body.language || '';
+    const language = requestedLanguage || resolvedPatient.preferredLanguage || 'en';
+    const languageName = getLanguageName(language);
+
+    const [translatedTitle, translatedDescription, translatedHospital] = await Promise.all([
+      translateText(req.body.title || 'Untitled', languageName),
+      translateText(req.body.description || '', languageName),
+      translateText(req.body.hospital || '', languageName),
+    ]);
+
     const payload = { 
       patient: resolvedPatient._id,
-      title: req.body.title || 'Untitled', 
-      description: req.body.description || '', 
+      title: translatedTitle, 
+      description: translatedDescription, 
       category: req.body.category || '',
-      hospital: req.body.hospital || '',
+      hospital: translatedHospital,
       doctor: req.body.doctor || '',
       emergencyContactNumber: req.body.emergencyContactNumber || '',
       metadata: req.body.metadata || {}, 
@@ -385,6 +429,7 @@ exports.downloadRecord = async (req, res, next) => {
 exports.aiChat = async (req, res, next) => {
   try {
     const { message, history, language = 'en' } = req.body;
+    const languageName = getLanguageName(language);
     const userId = req.user.id;
     
     // Fetch user records to provide "context"
@@ -400,7 +445,7 @@ exports.aiChat = async (req, res, next) => {
         
         Answer questions based on this context if applicable, but also answer general health questions like ChatGPT. 
         Always remind users to consult with a doctor for serious medical issues.
-        IMPORTANT: You MUST respond in the following language: ${language}.` 
+        IMPORTANT: You MUST respond in the following language: ${languageName}.` 
       },
       ...(history || []),
       { role: 'user', content: message }
@@ -415,7 +460,30 @@ exports.aiChat = async (req, res, next) => {
       messages,
     });
 
-    res.json({ response: completion.choices[0].message.content });
+    let responseText = completion.choices[0].message.content;
+    const needsTranslation =
+      language !== 'en' &&
+      /[A-Za-z]/.test(responseText || '');
+
+    if (needsTranslation) {
+      try {
+        const translationResponse = await openai.chat.completions.create({
+          model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional medical translator. Translate the assistant response into ${languageName}. Do not leave any English words. Return only the translated text.`
+            },
+            { role: 'user', content: responseText }
+          ]
+        });
+        responseText = translationResponse.choices[0].message.content;
+      } catch (err) {
+        console.error('Failed to translate AI chat response', err);
+      }
+    }
+
+    res.json({ response: responseText });
   } catch (err) { 
     console.error('AI Chat Error:', err);
     res.status(500).json({ error: 'Failed to connect to AI service' }); 
@@ -425,10 +493,42 @@ exports.aiChat = async (req, res, next) => {
 exports.getInsights = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const { language = 'en' } = req.query;
+    const languageName = getLanguageName(language);
     const records = await HealthRecord.find({ patient: userId }).sort({ createdAt: -1 }).limit(10);
     const recordsSummary = records.map(r => `${r.title} (${r.category}): ${r.description}`).join('\n');
 
     if (records.length === 0) {
+      if (language !== 'en') {
+        try {
+          const translationResponse = await openai.chat.completions.create({
+            model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a professional medical translator. Translate all human-readable values into ${languageName}. Do not leave any English words. Keep the JSON structure and keys exactly the same.`
+              },
+              {
+                role: 'user',
+                content: `Translate the following JSON into ${languageName} and return ONLY a JSON object with an "insights" array:\n${JSON.stringify({
+                  insights: [
+                    { title: 'Welcome', message: 'Upload your first medical record to get AI health insights!', type: 'info' }
+                  ]
+                })}`
+              }
+            ],
+            response_format: { type: 'json_object' }
+          });
+
+          const translatedParsed = JSON.parse(translationResponse.choices[0].message.content);
+          const translatedInsights = translatedParsed?.insights;
+          if (Array.isArray(translatedInsights)) {
+            return res.json({ insights: translatedInsights });
+          }
+        } catch (err) {
+          console.error('Failed to translate default insights', err);
+        }
+      }
       return res.json({ 
         insights: [
           { title: 'Welcome', message: 'Upload your first medical record to get AI health insights!', type: 'info' }
@@ -441,6 +541,7 @@ exports.getInsights = async (req, res, next) => {
         role: 'system', 
         content: `You are a medical AI analyzer. Based on the following health records, provide 3 short, actionable health insights.
         Format your response as a JSON object with an "insights" key containing an array of objects with keys: "title", "message", and "type" (one of "success", "warning", "info").
+        IMPORTANT: The language of all values in the JSON (title and message) MUST be in: ${languageName}.
         Return ONLY the JSON object.
         
         Records Context:
@@ -463,6 +564,38 @@ exports.getInsights = async (req, res, next) => {
       insights = [
         { title: 'Analysis Complete', message: 'We have reviewed your recent records. Stay healthy!', type: 'info' }
       ];
+    }
+
+    const needsTranslation =
+      language !== 'en' &&
+      Array.isArray(insights) &&
+      insights.some((item) => /[A-Za-z]/.test(`${item?.title || ''} ${item?.message || ''}`));
+
+    if (needsTranslation) {
+      try {
+        const translationResponse = await openai.chat.completions.create({
+          model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional medical translator. Translate all human-readable values into ${languageName}. Do not leave any English words. Keep the JSON structure and keys exactly the same.`
+            },
+            {
+              role: 'user',
+              content: `Translate the following JSON into ${languageName} and return ONLY a JSON object with an "insights" array:\n${JSON.stringify({ insights })}`
+            }
+          ],
+          response_format: { type: 'json_object' }
+        });
+
+        const translatedParsed = JSON.parse(translationResponse.choices[0].message.content);
+        const translatedInsights = translatedParsed?.insights;
+        if (Array.isArray(translatedInsights)) {
+          insights = translatedInsights;
+        }
+      } catch (err) {
+        console.error('Failed to translate AI insights', err);
+      }
     }
 
     res.json({ insights });
@@ -502,3 +635,4 @@ exports.getVoiceExplanation = async (req, res, next) => {
     res.status(500).json({ error: 'Failed to generate explanation' });
   }
 };
+

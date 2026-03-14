@@ -8,7 +8,6 @@ import { AppointmentsTab } from '@/app/components/patient/AppointmentsTab';
 import { SchemesTab } from '@/app/components/patient/SchemesTab';
 import { EmergencyTab } from '@/app/components/patient/EmergencyTab';
 import { useTranslation } from '@/app/utils/translations';
-import { useLanguage } from '@/app/context/LanguageContext';
 import { api } from '@/app/utils/api';
 import { getSecureContextInfo } from '@/app/utils/secureContext';
 import { 
@@ -30,7 +29,6 @@ interface PatientDashboardProps {
 }
 
 export function PatientDashboard({ onLogout, language, user: initialUser }: PatientDashboardProps) {
-  const { setLanguage } = useLanguage();
   const { t } = useTranslation(language);
   const secureInfo = getSecureContextInfo();
   const [activeTab, setActiveTab] = useState('qr');
@@ -315,14 +313,6 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
     { id: 'emergency', name: t('emergency'), icon: AlertCircle, color: '#f44336' },
   ];
 
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'ml', name: 'മലയാളം' },
-    { code: 'hi', name: 'हिंदी' },
-    { code: 'ta', name: 'தமிழ்' },
-    { code: 'bn', name: 'বাংলা' },
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-zinc-900">
       {/* Header */}
@@ -384,22 +374,9 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
                 <Camera className="w-5 h-5" />
                 <span className="hidden md:inline">{t('scanQR')}</span>
               </button>
-              <div className="relative group">
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-all flex items-center gap-1">
-                  <Globe className="w-5 h-5" />
-                  <span className="text-xs uppercase">{language}</span>
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50 p-1">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => setLanguage(lang.code)}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-zinc-800 transition-colors ${language === lang.code ? 'text-[#10b981] font-bold' : 'text-gray-400'}`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1 px-2 py-1 text-xs uppercase text-white/80">
+                <Globe className="w-4 h-4" />
+                <span>{language}</span>
               </div>
               <button
                 onClick={onLogout}
@@ -658,3 +635,7 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
     </div>
   );
 }
+
+
+
+

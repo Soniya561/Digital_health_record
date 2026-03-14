@@ -89,6 +89,7 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
         hospital: formData.hospital,
         doctor: formData.doctor,
         emergencyContactNumber: formData.emergencyContactNumber,
+        language,
       });
       
       const newRecord = response.record;

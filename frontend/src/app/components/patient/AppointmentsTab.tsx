@@ -80,7 +80,7 @@ export function AppointmentsTab() {
     e.preventDefault();
     try {
       setBookingLoading(true);
-      const response = await api.post('/appointments', formData);
+      const response = await api.post('/appointments', { ...formData, language });
       setAppointments([...appointments, response.appointment]);
       setShowBookDialog(false);
       setFormData({
@@ -114,7 +114,7 @@ export function AppointmentsTab() {
     if (!selectedAppointment) return;
     try {
       setBookingLoading(true);
-      const response = await api.put(`/appointments/${selectedAppointment._id}`, rescheduleData);
+      const response = await api.put(`/appointments/${selectedAppointment._id}`, { ...rescheduleData, language });
       setAppointments(appointments.map(a => a._id === selectedAppointment._id ? response.appointment : a));
       setShowRescheduleDialog(false);
       setSelectedAppointment(null);

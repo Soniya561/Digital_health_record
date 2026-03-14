@@ -182,7 +182,8 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
       setSuccess('');
       await api.put(`/appointments/${selectedAppointmentId}`, {
         clinicalNotes: notes,
-        prescriptions: pre
+        prescriptions: pre,
+        language
       });
       setSuccess('Clinical notes saved to appointment');
     } catch (err: any) {

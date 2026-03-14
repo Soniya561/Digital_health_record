@@ -4,6 +4,19 @@ const Patient = require('../models/Patient');
 const HealthRecord = require('../models/HealthRecord');
 const Appointment = require('../models/Appointment');
 
+const LANGUAGE_NAMES = {
+  en: 'English',
+  ml: 'Malayalam',
+  hi: 'Hindi',
+  ta: 'Tamil',
+  bn: 'Bengali',
+  kn: 'Kannada'
+};
+
+function getLanguageName(code = 'en') {
+  return LANGUAGE_NAMES[code] || 'English';
+}
+
 // Initialize OpenAI client for Groq or Gemini (using OpenAI compatibility)
 let openai = null;
 if (process.env.AI_API_KEY && process.env.AI_API_KEY !== 'replace_with_your_api_key') {
@@ -168,6 +181,7 @@ exports.askAI = async (req, res) => {
 exports.getAiSchemeRecommendations = async (req, res) => {
   try {
     const { language = 'en' } = req.query;
+    const languageName = getLanguageName(language);
     const patient = await Patient.findById(req.user.id);
     if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
@@ -282,7 +296,7 @@ exports.getHealthInsights = async (req, res) => {
     - Format as a JSON array of objects with keys: title, message, type.
     - Be specific to the patient's data (e.g., if they have diabetes, mention it).
     - Use clear, professional, and empathetic language.
-    - IMPORTANT: The language of all values in the JSON (title and message) MUST be in: ${language}.
+    - IMPORTANT: The language of all values in the JSON (title and message) MUST be in: ${languageName}.
     
     Example format:
     [
@@ -297,7 +311,7 @@ exports.getHealthInsights = async (req, res) => {
     const response = await openai.chat.completions.create({
       model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: `You are a medical AI assistant providing personalized health insights. You MUST respond in ${language}.` },
+        { role: 'system', content: `You are a medical AI assistant providing personalized health insights. You MUST respond in ${languageName}.` },
         { role: 'user', content: prompt }
       ],
       response_format: { type: 'json_object' }
@@ -310,6 +324,38 @@ exports.getHealthInsights = async (req, res) => {
     } catch (e) {
       console.error('Failed to parse AI response as JSON', e);
       insights = [];
+    }
+
+    const needsTranslation =
+      language !== 'en' &&
+      Array.isArray(insights) &&
+      insights.some((item) => /[A-Za-z]/.test(`${item?.title || ''} ${item?.message || ''}`));
+
+    if (needsTranslation && openai) {
+      try {
+        const translationResponse = await openai.chat.completions.create({
+          model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional medical translator. Translate all human-readable values into ${languageName}. Do not leave any English words. Keep the JSON structure and keys exactly the same.`
+            },
+            {
+              role: 'user',
+              content: `Translate the following JSON into ${languageName} and return ONLY a JSON object with an "insights" array:\n${JSON.stringify({ insights })}`
+            }
+          ],
+          response_format: { type: 'json_object' }
+        });
+
+        const translatedParsed = JSON.parse(translationResponse.choices[0].message.content);
+        const translatedInsights = translatedParsed?.insights;
+        if (Array.isArray(translatedInsights)) {
+          insights = translatedInsights;
+        }
+      } catch (err) {
+        console.error('Failed to translate AI insights', err);
+      }
     }
 
     res.json({ insights });

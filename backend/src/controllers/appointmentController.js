@@ -1,5 +1,47 @@
 const Appointment = require('../models/Appointment');
 const { resolveDoctorByInput, resolveDoctorFromUser } = require('../utils/doctorIdentity');
+const { OpenAI } = require('openai');
+
+const LANGUAGE_NAMES = {
+  en: 'English',
+  ml: 'Malayalam',
+  hi: 'Hindi',
+  ta: 'Tamil',
+  bn: 'Bengali',
+  kn: 'Kannada'
+};
+
+function getLanguageName(code = 'en') {
+  return LANGUAGE_NAMES[code] || 'English';
+}
+
+let openai = null;
+if (process.env.AI_API_KEY && process.env.AI_API_KEY !== 'replace_with_your_api_key') {
+  openai = new OpenAI({
+    apiKey: process.env.AI_API_KEY,
+    baseURL: process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1',
+  });
+}
+
+async function translateText(text, languageName) {
+  if (!text || languageName === 'English' || !openai) return text;
+  try {
+    const translationResponse = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a professional translator. Translate into ${languageName}. Do not leave any English words. Return only the translated text.`
+        },
+        { role: 'user', content: String(text) }
+      ]
+    });
+    return translationResponse.choices[0].message.content || text;
+  } catch (err) {
+    console.error('Translation failed', err);
+    return text;
+  }
+}
 
 exports.getAppointments = async (req, res, next) => {
   try {
@@ -37,21 +79,28 @@ exports.getDoctorAppointments = async (req, res, next) => {
 
 exports.createAppointment = async (req, res, next) => {
   try {
-    const { doctor, specialty, hospital, date, time, type } = req.body;
+    const { doctor, specialty, hospital, date, time, type, language = 'en' } = req.body;
     const selectedDoctor = resolveDoctorByInput(doctor);
     if (!selectedDoctor) {
       return res.status(400).json({ error: 'Please select either Dr. Sureka or Dr. Soniya' });
     }
 
+    const languageName = getLanguageName(language);
+    const [translatedSpecialty, translatedHospital, translatedType] = await Promise.all([
+      translateText(specialty, languageName),
+      translateText(hospital, languageName),
+      translateText(type, languageName),
+    ]);
+
     const appointment = new Appointment({
       patient: req.user.id,
       doctor: selectedDoctor.displayName,
       doctorKey: selectedDoctor.key,
-      specialty,
-      hospital,
+      specialty: translatedSpecialty,
+      hospital: translatedHospital,
       date,
       time,
-      type
+      type: translatedType
     });
     await appointment.save();
     res.status(201).json({ appointment });
@@ -62,6 +111,8 @@ exports.updateAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updateFields = req.body;
+    const language = updateFields.language || 'en';
+    const languageName = getLanguageName(language);
     // Patient can update their own appointment
     let query = { _id: id, patient: req.user.id };
 
@@ -83,6 +134,32 @@ exports.updateAppointment = async (req, res, next) => {
 
     delete updateFields.doctor;
     delete updateFields.doctorKey;
+    delete updateFields.language;
+
+    if (updateFields.specialty) {
+      updateFields.specialty = await translateText(updateFields.specialty, languageName);
+    }
+    if (updateFields.hospital) {
+      updateFields.hospital = await translateText(updateFields.hospital, languageName);
+    }
+    if (updateFields.type) {
+      updateFields.type = await translateText(updateFields.type, languageName);
+    }
+    if (updateFields.summary) {
+      updateFields.summary = await translateText(updateFields.summary, languageName);
+    }
+    if (updateFields.clinicalNotes) {
+      updateFields.clinicalNotes = await translateText(updateFields.clinicalNotes, languageName);
+    }
+    if (updateFields.prescriptions) {
+      if (Array.isArray(updateFields.prescriptions)) {
+        updateFields.prescriptions = await Promise.all(
+          updateFields.prescriptions.map((item) => translateText(item, languageName))
+        );
+      } else {
+        updateFields.prescriptions = await translateText(updateFields.prescriptions, languageName);
+      }
+    }
 
     const appointment = await Appointment.findOneAndUpdate(
       query,
@@ -97,7 +174,8 @@ exports.updateAppointment = async (req, res, next) => {
 exports.updateAppointmentStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, summary, clinicalNotes, prescriptions } = req.body;
+    const { status, summary, clinicalNotes, prescriptions, language = 'en' } = req.body;
+    const languageName = getLanguageName(language);
     
     let query = { _id: id };
     if (req.user.role !== 'DOCTOR') {
@@ -114,9 +192,18 @@ exports.updateAppointmentStatus = async (req, res, next) => {
       ];
     }
 
-    const update = { status, summary };
-    if (clinicalNotes) update.clinicalNotes = clinicalNotes;
-    if (prescriptions) update.prescriptions = prescriptions;
+    const update = { status };
+    if (summary) update.summary = await translateText(summary, languageName);
+    if (clinicalNotes) update.clinicalNotes = await translateText(clinicalNotes, languageName);
+    if (prescriptions) {
+      if (Array.isArray(prescriptions)) {
+        update.prescriptions = await Promise.all(
+          prescriptions.map((item) => translateText(item, languageName))
+        );
+      } else {
+        update.prescriptions = await translateText(prescriptions, languageName);
+      }
+    }
 
     const appointment = await Appointment.findOneAndUpdate(
       query,

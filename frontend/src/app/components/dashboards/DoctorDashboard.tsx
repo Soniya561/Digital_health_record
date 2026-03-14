@@ -16,7 +16,7 @@ interface DoctorDashboardProps {
 }
 
 export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const { t } = useTranslation(language);
   const [activeTab, setActiveTab] = useState('scan');
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
@@ -27,14 +27,6 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
     { id: 'upload', name: t('uploadRecords'), icon: Upload, color: '#ff9800' },
     { id: 'ai', name: t('aiClinicalAssistant'), icon: Sparkles, color: '#9c27b0' },
     { id: 'appointments', name: t('myAppointments'), icon: Calendar, color: '#4caf50' },
-  ];
-
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'ml', name: 'മലയാളം' },
-    { code: 'hi', name: 'हिंदी' },
-    { code: 'ta', name: 'தமிழ்' },
-    { code: 'bn', name: 'বাংলা' },
   ];
 
   return (
@@ -61,22 +53,9 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="relative group">
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-all flex items-center gap-1">
-                  <Globe className="w-5 h-5" />
-                  <span className="text-xs uppercase">{language}</span>
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50 p-1">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => setLanguage(lang.code as any)}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-zinc-800 transition-colors ${language === lang.code ? 'text-[#10b981] font-bold' : 'text-gray-400'}`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1 px-2 py-1 text-xs uppercase text-white/80">
+                <Globe className="w-4 h-4" />
+                <span>{language}</span>
               </div>
               <button
                 onClick={onLogout}
@@ -160,3 +139,7 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
     </div>
   );
 }
+
+
+
+

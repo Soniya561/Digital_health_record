@@ -6,11 +6,20 @@ type LanguageContextType = {
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const LANGUAGE_LOCK_KEY = 'language_locked';
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<string>(() => {
-    return localStorage.getItem('language') || 'en';
+  const [language, setLanguageState] = useState<string>(() => {
+    return localStorage.getItem(LANGUAGE_LOCK_KEY) || localStorage.getItem('language') || 'en';
   });
+
+  const setLanguage = (next: string) => {
+    const locked = localStorage.getItem(LANGUAGE_LOCK_KEY);
+    if (locked && locked !== next) {
+      return;
+    }
+    setLanguageState(next);
+  };
 
   useEffect(() => {
     localStorage.setItem('language', language);
@@ -20,7 +29,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleLangChange = (e: any) => {
-      setLanguage(e.detail);
+      const locked = localStorage.getItem(LANGUAGE_LOCK_KEY);
+      if (locked && locked !== e.detail) {
+        return;
+      }
+      setLanguageState(e.detail);
     };
     window.addEventListener('change-language', handleLangChange);
     return () => window.removeEventListener('change-language', handleLangChange);
