@@ -6,6 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { api } from '@/app/utils/api';
+import { getSecureContextInfo } from '@/app/utils/secureContext';
 
 interface ScanQRTabProps {
   onNavigate?: (tabId: string) => void;
@@ -18,6 +19,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
   const [isResolving, setIsResolving] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState('');
+  const secureInfo = getSecureContextInfo();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectorRef = useRef<any>(null);
@@ -161,6 +163,16 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
   const handleScan = async () => {
     setScanError(null);
 
+    if (!secureInfo.isSecureContextOk) {
+      setScanError(secureInfo.message || 'Camera access needs HTTPS. Open the app on localhost or use HTTPS.');
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setScanError('Camera access is not supported by your browser or requires a secure (HTTPS) connection');
+      return;
+    }
+
     if (!(window as any).BarcodeDetector) {
       setScanError('Camera QR scan is not supported in this browser. Paste QR link/token below.');
       return;
@@ -224,6 +236,24 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
         <p className="text-sm text-muted-foreground mb-6">
           Scan the patient's health QR code for instant access to their medical records
         </p>
+
+        {!secureInfo.isSecureContextOk && (
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-xs p-3">
+            <p>{secureInfo.message || 'Camera access needs HTTPS to work on this device.'}</p>
+            {secureInfo.secureOriginUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  window.location.href = secureInfo.secureOriginUrl;
+                }}
+              >
+                Open HTTPS
+              </Button>
+            )}
+          </div>
+        )}
 
         {!selectedPatient ? (
           <div className="space-y-4">

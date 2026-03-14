@@ -77,6 +77,41 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
     return matchesSearch && matchesFilter;
   });
 
+  const handleShare = async (record: any) => {
+    try {
+      // Get or create QR token for the record
+      const res: any = await api.post(`/records/${record._id}/qr`, {});
+      const token = res.qrToken;
+      const shareUrl = `${window.location.origin}/qr/${token}`;
+
+      if (navigator.share) {
+        await navigator.share({
+          title: record.title,
+          text: t('Medical Record Details'),
+          url: shareUrl,
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert(t('Share link copied to clipboard'));
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          alert(t('Share link copied to clipboard'));
+        } catch (err) {
+          alert('Share link: ' + shareUrl);
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err: any) {
+      console.error('Share failed', err);
+      alert(err.message || 'Share failed');
+    }
+  };
+
   const handleDownload = async (recordId: string, title?: string) => {
     try {
       await api.download(`/records/${recordId}/download`, title || 'record');
@@ -232,15 +267,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
                         variant="ghost" 
                         size="sm" 
                         icon={<Share2 className="w-4 h-4" />}
-                        onClick={() => {
-                          const shareUrl = `${window.location.origin}/qr/${record._id}`;
-                          if (navigator.share) {
-                            navigator.share({ title: record.title, url: shareUrl });
-                          } else {
-                            navigator.clipboard.writeText(shareUrl);
-                            alert('Link copied to clipboard');
-                          }
-                        }}
+                        onClick={() => handleShare(record)}
                       >
                         Share
                       </Button>
@@ -258,6 +285,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
         open={!!selectedRecord} 
         onOpenChange={(open) => !open && setSelectedRecord(null)}
         onDownload={handleDownload}
+        onShare={handleShare}
         t={t}
         language={language}
       />
@@ -288,11 +316,12 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
   );
 }
 
-function RecordDetailsDialog({ record, open, onOpenChange, onDownload, t, language }: { 
+function RecordDetailsDialog({ record, open, onOpenChange, onDownload, onShare, t, language }: { 
   record: any | null, 
   open: boolean, 
   onOpenChange: (open: boolean) => void,
   onDownload: (id: string, title: string) => void,
+  onShare: (record: any) => void,
   t: any,
   language: string
 }) {
@@ -368,15 +397,7 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, t, langua
             <Button
               variant="outline"
               className="flex-1 sm:flex-none border-zinc-700 hover:bg-zinc-800 text-white"
-              onClick={() => {
-                const shareUrl = `${window.location.origin}/qr/${record._id}`;
-                if (navigator.share) {
-                  navigator.share({ title: record.title, url: shareUrl });
-                } else {
-                  navigator.clipboard.writeText(shareUrl);
-                  alert('Link copied to clipboard');
-                }
-              }}
+              onClick={() => onShare(record)}
             >
               <Share2 className="w-4 h-4 mr-2" />
               Share

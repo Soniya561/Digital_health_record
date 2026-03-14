@@ -1,18 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
+import { getSecureContextInfo } from '@/app/utils/secureContext';
 
 export function useVoice(onResult: (result: string) => void, language: string = 'en') {
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  const host = typeof window !== 'undefined' ? (window.location.hostname || 'localhost') : 'localhost';
-  const port = typeof window !== 'undefined' ? window.location.port : '';
-  const path = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/';
-  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  const isSecureContextOk = typeof window !== 'undefined' ? (window.isSecureContext || isLocalHost) : true;
-  const secureOriginUrl = typeof window !== 'undefined'
-    ? `https://${host}${port ? `:${port}` : ''}${path}`
-    : '';
+  const { host, isLocalHost, isSecureContextOk, secureOriginUrl, message: secureMessage } = getSecureContextInfo();
 
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -27,7 +21,7 @@ export function useVoice(onResult: (result: string) => void, language: string = 
     }
 
     if (!window.isSecureContext && !isLocalHost) {
-      setError(`Voice input needs HTTPS on ${host}. Open the app on localhost or use HTTPS.`);
+      setError(secureMessage || `Voice input needs HTTPS on ${host}. Open the app on localhost or use HTTPS.`);
       return;
     }
 
@@ -73,7 +67,7 @@ export function useVoice(onResult: (result: string) => void, language: string = 
       const code = event?.error || 'speech-error';
 
       if ((code === 'not-allowed' || code === 'service-not-allowed') && !window.isSecureContext && !isLocalHost) {
-        setError(`Voice input is blocked on ${host} over HTTP. Use HTTPS or localhost.`);
+        setError(secureMessage || `Voice input is blocked on ${host} over HTTP. Use HTTPS or localhost.`);
         setIsListening(false);
         recognitionRef.current = null;
         return;

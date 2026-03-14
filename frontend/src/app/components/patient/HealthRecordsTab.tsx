@@ -162,9 +162,22 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
           text: t('Scan this QR code to view the record details'),
           url: shareLink,
         });
-      } else {
+      } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareLink);
-        alert('Share link copied to clipboard');
+        alert(t('Share link copied to clipboard'));
+      } else {
+        // Fallback for non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = shareLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          alert(t('Share link copied to clipboard'));
+        } catch (err) {
+          alert('Share link: ' + shareLink);
+        }
+        document.body.removeChild(textArea);
       }
       
       if (onNavigate) {
@@ -567,9 +580,22 @@ function SuccessQRDialog({ record, qrToken, open, onOpenChange, t }: any) {
       } catch (err: any) {
         if (err.name !== 'AbortError') console.error('Share failed', err);
       }
-    } else {
+    } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(shareLink);
-      alert('Link copied to clipboard');
+      alert(t('Share link copied to clipboard'));
+    } else {
+      // Fallback for non-secure contexts
+      const textArea = document.createElement('textarea');
+      textArea.value = shareLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert(t('Share link copied to clipboard'));
+      } catch (err) {
+        alert('Share link: ' + shareLink);
+      }
+      document.body.removeChild(textArea);
     }
   };
 

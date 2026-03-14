@@ -25,3 +25,13 @@ npm install
 ```bash
 npm run dev
 ```
+
+HTTPS note:
+
+If the frontend runs on HTTPS, the API must also be served over HTTPS (otherwise browsers block mixed content). Set these in `backend/.env` to enable TLS:
+
+- `USE_HTTPS=true`
+- `SSL_KEY_PATH=certs/localhost-key.pem`
+- `SSL_CERT_PATH=certs/localhost.pem`
+
+Ensure the certificate is trusted by the device accessing the app.

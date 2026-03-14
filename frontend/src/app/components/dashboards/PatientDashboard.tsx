@@ -10,6 +10,7 @@ import { EmergencyTab } from '@/app/components/patient/EmergencyTab';
 import { useTranslation } from '@/app/utils/translations';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { api } from '@/app/utils/api';
+import { getSecureContextInfo } from '@/app/utils/secureContext';
 import { 
   Dialog, 
   DialogContent, 
@@ -31,6 +32,7 @@ interface PatientDashboardProps {
 export function PatientDashboard({ onLogout, language, user: initialUser }: PatientDashboardProps) {
   const { setLanguage } = useLanguage();
   const { t } = useTranslation(language);
+  const secureInfo = getSecureContextInfo();
   const [activeTab, setActiveTab] = useState('qr');
   const [showScanDialog, setShowScanDialog] = useState(false);
   const [scanToken, setScanToken] = useState('');
@@ -225,6 +227,11 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
 
   const handleScanWithCamera = async () => {
     setScanError(null);
+
+    if (!secureInfo.isSecureContextOk) {
+      setScanError(secureInfo.message || 'Camera access needs HTTPS. Open the app on localhost or use HTTPS.');
+      return;
+    }
 
     if (!(window as any).BarcodeDetector) {
       setScanError('Camera QR scan is not supported in this browser. Paste QR link/token below.');
@@ -555,6 +562,25 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
               {t('scanQRDesc')}
             </DialogDescription>
           </DialogHeader>
+
+          {!secureInfo.isSecureContextOk && (
+            <div className="w-full rounded-lg border border-blue-800 bg-blue-900/40 text-blue-100 text-xs p-3">
+              <p>{secureInfo.message || 'Camera access needs HTTPS to work on this device.'}</p>
+              {secureInfo.secureOriginUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 border-blue-500 text-blue-100"
+                  onClick={() => {
+                    window.location.href = secureInfo.secureOriginUrl;
+                  }}
+                >
+                  Open HTTPS
+                </Button>
+              )}
+            </div>
+          )}
           
           <div className="flex flex-col items-center justify-center py-6">
             <div className="w-56 h-56 border-2 border-dashed border-zinc-700 rounded-2xl flex flex-col items-center justify-center mb-4 bg-zinc-900/50 overflow-hidden">

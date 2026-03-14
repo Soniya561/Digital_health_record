@@ -61,8 +61,21 @@ export function HealthQRTab({ user }: { user: any }) {
           console.error('Error sharing:', err);
         }
       }
-    } else {
+    } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(shareUrl);
+      alert(t('Link copied to clipboard'));
+    } else {
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert(t('Link copied to clipboard'));
+      } catch (err) {
+        alert('Share link: ' + shareUrl);
+      }
+      document.body.removeChild(textArea);
     }
   };
 

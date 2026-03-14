@@ -8,6 +8,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { api } from '@/app/utils/api';
 import { useTranslation } from '@/app/utils/translations';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { getSecureContextInfo } from '@/app/utils/secureContext';
 
 interface UploadRecordsTabProps {
   patient?: any;
@@ -27,6 +28,7 @@ function resolvePatientIdentifier(patient: any): string {
 export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const secureInfo = getSecureContextInfo();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [patientId, setPatientId] = useState('');
   const [recordType, setRecordType] = useState('prescription');
@@ -37,10 +39,12 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraLoading, setCameraLoading] = useState(false);
 
   // Camera states
   const [isCapturing, setIsCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
@@ -54,8 +58,34 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
     return () => stopCamera();
   }, []);
 
+  useEffect(() => {
+    if (isCapturing && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCapturing]);
+
   const startCamera = async () => {
     setError(null);
+    
+    if (!secureInfo.isSecureContextOk) {
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      setError(secureInfo.message || 'Camera access needs HTTPS. Open the app on localhost or use HTTPS.');
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Fallback to native camera app via file input
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      } else {
+        setError('Camera access is not supported by your browser or requires a secure (HTTPS) connection');
+      }
+      return;
+    }
+
+    setCameraLoading(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } },
@@ -63,13 +93,14 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
       });
       streamRef.current = stream;
       setIsCapturing(true);
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      }, 100);
     } catch (err: any) {
-      setError(err.message || 'Unable to access camera');
+      const message = err?.message || 'Unable to access camera';
+      const isSecureError = /secure|https|Only secure origins/i.test(message) || err?.name === 'SecurityError';
+      if (isSecureError && fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      setError(message);
+      setCameraLoading(false);
     }
   };
 
@@ -78,11 +109,15 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsCapturing(false);
+    setCameraLoading(false);
   };
 
   const takePhoto = () => {
-    if (videoRef.current) {
+    if (videoRef.current && videoRef.current.readyState >= 2) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
@@ -210,20 +245,48 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
       <Card>
         <h3 className="font-semibold text-foreground mb-3">{t('Upload Document')}</h3>
         
+        {error && !uploaded && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm flex items-center gap-2">
+            <X className="w-4 h-4" onClick={() => setError(null)} />
+            {error}
+          </div>
+        )}
+
         {!selectedFile ? (
           <div className="space-y-4">
             {isCapturing ? (
               <div className="space-y-4">
-                <div className="relative aspect-video bg-black rounded-xl overflow-hidden border-2 border-purple-500">
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                    <Button onClick={takePhoto} variant="primary" className="rounded-full w-12 h-12 p-0 flex items-center justify-center">
-                      <div className="w-8 h-8 rounded-full border-4 border-white" />
-                    </Button>
-                    <Button onClick={stopCamera} variant="outline" className="rounded-full w-12 h-12 p-0 flex items-center justify-center bg-black/50 border-white text-white">
-                      <X className="w-6 h-6" />
-                    </Button>
-                  </div>
+                <div className="relative aspect-video bg-black rounded-xl overflow-hidden border-2 border-purple-500 flex items-center justify-center">
+                  {cameraLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10 text-white">
+                      <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                      <p className="text-xs">{t('Starting camera...')}</p>
+                    </div>
+                  )}
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    onLoadedMetadata={() => setCameraLoading(false)}
+                    className="w-full h-full object-cover" 
+                  />
+                  {!cameraLoading && (
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                      <motion.button
+                        onClick={takePhoto}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="rounded-full w-14 h-14 bg-white border-4 border-gray-300 flex items-center justify-center shadow-lg transition-all"
+                        aria-label="Take Photo"
+                      >
+                        <div className="w-10 h-10 rounded-full border-2 border-gray-200 bg-white" />
+                      </motion.button>
+                      <Button onClick={stopCamera} variant="outline" className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black/50 border-white text-white">
+                        <X className="w-6 h-6" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -255,6 +318,14 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
                 <Button onClick={startCamera} variant="outline" icon={<Camera className="w-4 h-4" />}>
                   {t('Take Photo')}
                 </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
               </div>
             )}
           </div>
@@ -336,10 +407,6 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
                     onChange={(e) => setDoctor(e.target.value)}
                   />
                   
-                  {error && (
-                    <p className="text-sm text-red-500">{error}</p>
-                  )}
-
                   <Button
                     variant="primary"
                     size="lg"
