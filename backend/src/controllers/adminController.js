@@ -1,34 +1,85 @@
 const Patient = require('../models/Patient');
 const HealthRecord = require('../models/HealthRecord');
 const Appointment = require('../models/Appointment');
+const { decryptField } = require('../utils/crypto');
 
 function mapUser(doc) {
   const resolvedVerified = doc.verified !== undefined ? doc.verified : (doc.role === 'DOCTOR' || doc.role === 'ADMIN');
   const resolvedStatus = doc.status || (resolvedVerified ? 'active' : 'pending');
+  
+  // Manually decrypt phone if it's not already decrypted by virtuals
+  let phone = doc.phone;
+  if (!phone && doc.phone_enc) {
+    try {
+      phone = decryptField(doc.phone_enc);
+    } catch (err) {
+      phone = '';
+    }
+  }
+
   return {
     id: String(doc._id),
     name: doc.name,
     role: doc.role || 'PATIENT',
     email: doc.email,
-    phone: doc.phone || '',
+    phone: phone || '',
     organization: doc.organization || '',
     verified: Boolean(resolvedVerified),
     status: resolvedStatus,
     lastActive: doc.updatedAt || doc.createdAt,
     photoUrl: doc.photoUrl || null,
+    abhaId: doc.abhaId || '',
+    blockchainId: doc.blockchainId || '',
   };
 }
 
-// List all users for admin user management
+// List all users for admin user management with search and filters
 exports.listUsers = async (req, res, next) => {
   try {
-    const users = await Patient.find({})
-      .select('name email role photoUrl updatedAt createdAt phone_enc verified status organization')
+    const { search, role, status, verified, page = 1, limit = 50 } = req.query;
+    const filter = {};
+
+    if (role && role !== 'all') {
+      filter.role = role.toUpperCase();
+    }
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+    if (verified !== undefined) {
+      filter.verified = verified === 'true';
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { abhaId: searchRegex },
+        { organization: searchRegex }
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const users = await Patient.find(filter)
+      .select('name email role photoUrl updatedAt createdAt phone_enc verified status organization abhaId blockchainId')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
       .lean({ virtuals: true });
 
+    const total = await Patient.countDocuments(filter);
     const mapped = users.map(mapUser);
 
-    res.json({ users: mapped });
+    res.json({ 
+      users: mapped,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
   } catch (err) {
     next(err);
   }
@@ -159,6 +210,24 @@ exports.getPendingAppointments = async (_req, res, next) => {
     }));
 
     res.json({ appointments: mapped });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await Patient.findByIdAndDelete(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Clean up related data if necessary
+    await Promise.all([
+      HealthRecord.deleteMany({ patient: id }),
+      Appointment.deleteMany({ patient: id }),
+    ]);
+
+    res.json({ message: 'User and associated data deleted successfully' });
   } catch (err) {
     next(err);
   }

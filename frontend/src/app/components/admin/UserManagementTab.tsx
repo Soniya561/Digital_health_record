@@ -58,11 +58,15 @@ export function UserManagementTab() {
   const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
   const [loadingPendingAppts, setLoadingPendingAppts] = useState(true);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (query = '', role = 'all') => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/admin/users');
+      const params = new URLSearchParams();
+      if (query) params.append('search', query);
+      if (role && role !== 'all') params.append('role', role);
+      
+      const res = await api.get(`/admin/users?${params.toString()}`);
       setUsers((res as any).users || []);
     } catch (err: any) {
       setError(err?.message || 'Failed to load users');
@@ -72,8 +76,26 @@ export function UserManagementTab() {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const timer = setTimeout(() => {
+      fetchUsers(searchQuery, filterRole);
+    }, 500); // Debounce search
+    return () => clearTimeout(timer);
+  }, [searchQuery, filterRole, fetchUsers]);
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user and all their records? This cannot be undone.')) return;
+    
+    setSavingUserId(userId);
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      if (selectedUser?.id === userId) setSelectedUser(null);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete user');
+    } finally {
+      setSavingUserId(null);
+    }
+  };
 
   useEffect(() => {
     const loadPendingAppts = async () => {
@@ -111,6 +133,7 @@ export function UserManagementTab() {
       return (
         u.name.toLowerCase().includes(query) ||
         u.email.toLowerCase().includes(query) ||
+        (u.abhaId || '').toLowerCase().includes(query) ||
         phoneClean.includes(query.replace(/\s|-/g, '')) ||
         (u.organization || '').toLowerCase().includes(query) ||
         normalizeRole(u.role).includes(query.toUpperCase()) ||
@@ -441,31 +464,15 @@ export function UserManagementTab() {
                   <Button variant="ghost" size="sm" disabled={savingUserId === user.id} onClick={() => handleToggleStatus(user)}>
                     {user.status === 'suspended' ? 'Activate' : 'Suspend'}
                   </Button>
+                  <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50" disabled={savingUserId === user.id} onClick={() => handleDeleteUser(user.id)}>
+                    Delete
+                  </Button>
                 </div>
               </div>
             </Card>
           </motion.div>
         ))}
       </div>
-
-      {/* Role Assignment Info */}
-      <Card className="bg-blue-50 border-blue-200">
-        <div className="flex items-start gap-3">
-          <div className="text-2xl">🔐</div>
-          <div>
-            <h3 className="font-semibold text-foreground mb-1">Role-Based Access Control</h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              The system uses strict role-based permissions to ensure data security and privacy.
-            </p>
-            <div className="text-sm space-y-1">
-              <p>• <strong>Patients:</strong> View own records, manage consent</p>
-              <p>• <strong>Doctors:</strong> Access patient records with consent, upload documents</p>
-              <p>• <strong>Hospitals:</strong> Manage facilities, verify doctors</p>
-              <p>• <strong>Admins:</strong> Full system access, analytics, user management</p>
-            </div>
-          </div>
-        </div>
-      </Card>
 
       <UserDetailDialog 
         user={selectedUser} 
