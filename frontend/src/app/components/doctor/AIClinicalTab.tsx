@@ -5,6 +5,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { api } from '@/app/utils/api';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { useTranslation } from '@/app/utils/translations';
 
 type Prescription = {
   medicine: string;
@@ -40,10 +41,11 @@ interface AIClinicalTabProps {
 
 export function AIClinicalTab({ patient }: AIClinicalTabProps) {
   const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hello Doctor. I'm your AI Clinical Assistant. I can help you analyze patient data, suggest clinical notes, or answer medical queries. How can I assist you today?" }
+    { role: 'assistant', content: t('clinicalAssistantGreeting') }
   ]);
   const [input, setInput] = useState('');
   const [loadingAppointments, setLoadingAppointments] = useState(true);
@@ -121,7 +123,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
         setMessages(prev => [...prev, { role: 'assistant', content: res.answer }]);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to get AI response');
+      setError(language === 'en' ? (err.message || t('failedGetAiResponse')) : t('failedGetAiResponse'));
     } finally {
       setGenerating(false);
     }
@@ -129,7 +131,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
 
   const handleGenerateNotes = async () => {
     if (!selectedAppointmentId) {
-      setError('Please select an appointment first.');
+      setError(t('selectAppointmentFirst'));
       return;
     }
 
@@ -143,16 +145,22 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
         language: language
       });
       
-      let responseContent = `**Clinical Summary:**\n${res.clinicalNotes}\n\n`;
+      let responseContent = `**${t('clinicalSummaryLabel')}:**\n${res.clinicalNotes}\n\n`;
       if (res.prescriptions && res.prescriptions.length > 0) {
-        responseContent += `**Suggested Prescriptions:**\n`;
+        responseContent += `**${t('suggestedPrescriptionsLabel')}:**\n`;
         res.prescriptions.forEach((p: Prescription, i: number) => {
-          responseContent += `${i + 1}. ${p.medicine} (${p.dosage}) for ${p.duration}. ${p.instructions}\n`;
+          responseContent += t('prescriptionLine')
+            .replace('{{index}}', String(i + 1))
+            .replace('{{medicine}}', p.medicine || '')
+            .replace('{{dosage}}', p.dosage || '')
+            .replace('{{duration}}', p.duration || '')
+            .replace('{{instructions}}', p.instructions || '')
+            .trim() + '\n';
         });
       }
       
       if (res.warning) {
-        responseContent += `\n*Note: ${res.warning}*`;
+        responseContent += `\n*${t('noteLabel')}: ${res.warning}*`;
       }
 
       setMessages(prev => [...prev, { 
@@ -162,9 +170,9 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
         clinicalNotes: res.clinicalNotes,
         prescriptions: res.prescriptions
       }]);
-      setSuccess('Clinical notes generated below.');
+      setSuccess(t('clinicalNotesGenerated'));
     } catch (err: any) {
-      setError('Failed to generate notes: ' + err.message);
+      setError(t('failedGenerateNotes'));
     } finally {
       setGenerating(false);
     }
@@ -172,7 +180,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
 
   const handleSave = async (notes: string, pre: Prescription[]) => {
     if (!selectedAppointmentId) {
-      setError('Select an appointment first');
+      setError(t('selectAppointmentFirstShort'));
       return;
     }
 
@@ -185,16 +193,16 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
         prescriptions: pre,
         language
       });
-      setSuccess('Clinical notes saved to appointment');
+      setSuccess(t('clinicalNotesSaved'));
     } catch (err: any) {
-      setError(err.message || 'Failed to save clinical notes');
+      setError(language === 'en' ? (err.message || t('failedSaveClinicalNotes')) : t('failedSaveClinicalNotes'));
     } finally {
       setSaving(false);
     }
   };
 
   const clearChat = () => {
-    setMessages([{ role: 'assistant', content: "Chat cleared. How can I help you now?" }]);
+    setMessages([{ role: 'assistant', content: t('chatCleared') }]);
     setError('');
     setSuccess('');
   };
@@ -209,13 +217,13 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">AI Clinical Assistant</h2>
-              <p className="text-xs text-muted-foreground">Context-aware medical decision support</p>
+              <h2 className="text-xl font-bold">{t('aiClinicalAssistantTitle')}</h2>
+              <p className="text-xs text-muted-foreground">{t('aiClinicalAssistantSubtitle')}</p>
             </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={clearChat} className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white">
-              <Trash2 className="w-4 h-4 mr-1" /> Clear
+              <Trash2 className="w-4 h-4 mr-1" /> {t('clearChat')}
             </Button>
           </div>
         </div>
@@ -259,7 +267,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
                         disabled={saving}
                       >
                         {saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
-                        Save to Appointment
+                        {t('saveToAppointment')}
                       </Button>
                     )}
                   </div>
@@ -306,7 +314,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about patient history, symptoms, or medications..."
+                placeholder={t('clinicalAskPlaceholder')}
                 className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all text-white placeholder:text-zinc-600 shadow-inner"
                 disabled={generating}
               />
@@ -326,19 +334,19 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
           <Card className="p-4 space-y-4 border-zinc-800 bg-zinc-900/50 backdrop-blur-sm shadow-xl">
             <h3 className="font-semibold text-sm flex items-center gap-2 text-zinc-200">
               <Info className="w-4 h-4 text-blue-400" />
-              Clinical Context
+              {t('clinicalContext')}
             </h3>
             
             <div className="space-y-2">
-              <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Active Appointment</label>
+              <label className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">{t('activeAppointment')}</label>
               {loadingAppointments ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Loading...
+                  {t('loading')}
                 </div>
               ) : filteredAppointments.length === 0 ? (
                 <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800/50">
-                   <p className="text-[10px] text-zinc-500 italic text-center">No appointments for this patient</p>
+                   <p className="text-[10px] text-zinc-500 italic text-center">{t('noAppointmentsForPatient')}</p>
                 </div>
               ) : (
                 <select
@@ -348,7 +356,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
                 >
                   {filteredAppointments.map((appt) => (
                     <option key={appt._id} value={appt._id}>
-                      {new Date(appt.date).toLocaleDateString('en-IN')} - {appt.specialty || 'General'}
+                      {new Date(appt.date).toLocaleDateString(language === 'en' ? 'en-IN' : language)} - {appt.specialty || t('generalLabel')}
                     </option>
                   ))}
                 </select>
@@ -356,7 +364,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
             </div>
 
             <div className="pt-2 space-y-2">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-1">Quick Actions</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-1">{t('quickActions')}</p>
               <Button 
                 className="w-full justify-start text-[11px] h-9 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/50 rounded-lg transition-colors" 
                 variant="outline"
@@ -364,25 +372,25 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
                 disabled={generating || !selectedAppointmentId}
               >
                 <Sparkles className="w-3.5 h-3.5 mr-2 text-purple-400" />
-                Draft Clinical Notes
+                {t('draftClinicalNotes')}
               </Button>
               <Button 
                 className="w-full justify-start text-[11px] h-9 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/50 rounded-lg transition-colors" 
                 variant="outline"
-                onClick={() => handleSend("Analyze this patient's history for potential risks or allergies.")}
+                onClick={() => handleSend(t('analyzePatientRisksPrompt'))}
                 disabled={generating || !patient}
               >
                 <AlertTriangle className="w-3.5 h-3.5 mr-2 text-amber-400" />
-                Analyze Patient Risks
+                {t('analyzePatientRisks')}
               </Button>
               <Button 
                 className="w-full justify-start text-[11px] h-9 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/50 rounded-lg transition-colors" 
                 variant="outline"
-                onClick={() => handleSend("Suggest a treatment plan for the current symptoms based on medical best practices.")}
+                onClick={() => handleSend(t('suggestTreatmentPlanPrompt'))}
                 disabled={generating}
               >
                 <Brain className="w-3.5 h-3.5 mr-2 text-blue-400" />
-                Suggest Treatment Plan
+                {t('suggestTreatmentPlan')}
               </Button>
             </div>
           </Card>
@@ -393,7 +401,7 @@ export function AIClinicalTab({ patient }: AIClinicalTabProps) {
             <div className="flex gap-2 items-start">
               <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
               <p className="text-[10px] text-yellow-200/80 leading-relaxed">
-                <strong>Decision Support Only:</strong> AI responses must be reviewed by a licensed professional before clinical implementation.
+                <strong>{t('decisionSupportOnly')}</strong> {t('decisionSupportDisclaimer')}
               </p>
             </div>
           </Card>

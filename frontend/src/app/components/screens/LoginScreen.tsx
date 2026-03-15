@@ -7,7 +7,6 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { api } from '@/app/utils/api';
 import { useTranslation } from '@/app/utils/translations';
 import { useVoice } from '@/app/hooks/useVoice';
-import { getSecureContextInfo } from '@/app/utils/secureContext';
 
 interface LoginScreenProps {
   onLogin: (role: string) => void;
@@ -46,7 +45,6 @@ function extractEmailFromSpeech(value: string) {
 
 export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   const { t } = useTranslation(language);
-  const { message: secureContextMessage } = getSecureContextInfo();
   const [loginMethod, setLoginMethod] = useState<'email' | 'qr'>('email');
   const [email, setEmail] = useState('');
   const [showImpactStats, setShowImpactStats] = useState(true);
@@ -91,7 +89,12 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
 
     const spokenEmail = extractEmailFromSpeech(result);
     if (spokenEmail) setEmail(spokenEmail);
-  }, language);
+  }, language, {
+    speechNotSupported: t('voiceInputError'),
+    voiceNeedsHttps: t('voiceInputNeedsHttps'),
+    voiceBlockedHttp: t('voiceInputNeedsHttps'),
+    voiceMicPermission: t('voiceInputError')
+  });
 
   const handleSendOTP = async () => {
     if (!loginPhoto) {
@@ -291,7 +294,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
     setScanError(null);
 
     if (!isSecureContextOk) {
-      setScanError(secureContextMessage || `Camera access needs HTTPS. Open the app on localhost or use HTTPS.`);
+      setScanError(t('secureContextRequired'));
       return;
     }
 
@@ -439,12 +442,12 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
 
               {voiceError && (
                 <div className="mb-4 p-3 bg-amber-900/40 border border-amber-500 rounded-lg text-amber-100 text-sm">
-                  Voice input: {voiceError}
+                  {t('voiceInputError')}
                 </div>
               )}
               {!isSecureContextOk && (
                 <div className="mb-4 p-3 bg-blue-900/40 border border-blue-500 rounded-lg text-blue-100 text-sm flex items-center justify-between gap-3">
-                  <span>{secureContextMessage || 'Voice and camera need HTTPS on this device.'}</span>
+                  <span>{t('voiceInputNeedsHttps')}</span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -452,7 +455,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                       if (secureOriginUrl) window.location.href = secureOriginUrl;
                     }}
                   >
-                    Open HTTPS
+                    {t('openHttps')}
                   </Button>
                 </div>
               )}
@@ -592,7 +595,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                         ) : (
                           <Mic className="w-4 h-4" />
                         )}
-                        {isListening ? 'Listening...' : t('useVoiceInput')}
+                        {isListening ? t('listening') : t('useVoiceInput')}
                       </button>
 
                       <Button

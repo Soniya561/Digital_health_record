@@ -71,7 +71,7 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
       if (fileInputRef.current) {
         fileInputRef.current.click();
       }
-      setError(secureInfo.message || 'Camera access needs HTTPS. Open the app on localhost or use HTTPS.');
+      setError(t('secureContextRequired'));
       return;
     }
 

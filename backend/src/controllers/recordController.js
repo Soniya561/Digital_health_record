@@ -20,6 +20,37 @@ function getLanguageName(code = 'en') {
   return LANGUAGE_NAMES[code] || 'English';
 }
 
+const LOCALIZED_MESSAGES = {
+  en: {
+    aiUnavailable: 'AI service unavailable',
+    aiUnavailableShort: 'AI service is currently unavailable'
+  },
+  ml: {
+    aiUnavailable: 'എഐ സേവനം ലഭ്യമല്ല',
+    aiUnavailableShort: 'എഐ സേവനം ഇപ്പോൾ ലഭ്യമല്ല'
+  },
+  hi: {
+    aiUnavailable: 'एआई सेवा उपलब्ध नहीं है',
+    aiUnavailableShort: 'एआई सेवा अभी उपलब्ध नहीं है'
+  },
+  ta: {
+    aiUnavailable: 'ஏஐ சேவை கிடைக்கவில்லை',
+    aiUnavailableShort: 'ஏஐ சேவை தற்போது கிடைக்கவில்லை'
+  },
+  bn: {
+    aiUnavailable: 'এআই সেবা উপলভ্য নয়',
+    aiUnavailableShort: 'এআই সেবা বর্তমানে উপলভ্য নয়'
+  },
+  kn: {
+    aiUnavailable: 'ಎಐ ಸೇವೆ ಲಭ್ಯವಿಲ್ಲ',
+    aiUnavailableShort: 'ಎಐ ಸೇವೆ ಪ್ರಸ್ತುತ ಲಭ್ಯವಿಲ್ಲ'
+  }
+};
+
+function getLocalizedMessage(language = 'en', key = 'aiUnavailable') {
+  return (LOCALIZED_MESSAGES[language] && LOCALIZED_MESSAGES[language][key]) || LOCALIZED_MESSAGES.en[key] || '';
+}
+
 async function translateText(text, languageName) {
   if (!text || languageName === 'English') return text;
   if (!process.env.AI_API_KEY || process.env.AI_API_KEY === 'replace_with_your_api_key') return text;
@@ -452,7 +483,7 @@ exports.aiChat = async (req, res, next) => {
     ];
 
     if (!openai) {
-      return res.status(503).json({ error: 'AI service unavailable' });
+      return res.status(503).json({ error: getLocalizedMessage(language, 'aiUnavailableShort') });
     }
 
     const completion = await openai.chat.completions.create({
@@ -486,7 +517,7 @@ exports.aiChat = async (req, res, next) => {
     res.json({ response: responseText });
   } catch (err) { 
     console.error('AI Chat Error:', err);
-    res.status(500).json({ error: 'Failed to connect to AI service' }); 
+    res.status(500).json({ error: getLocalizedMessage(req.body?.language || 'en', 'aiUnavailable') }); 
   }
 };
 
@@ -500,6 +531,9 @@ exports.getInsights = async (req, res, next) => {
 
     if (records.length === 0) {
       if (language !== 'en') {
+        if (!openai) {
+          return res.json({ insights: [] });
+        }
         try {
           const translationResponse = await openai.chat.completions.create({
             model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
@@ -528,6 +562,7 @@ exports.getInsights = async (req, res, next) => {
         } catch (err) {
           console.error('Failed to translate default insights', err);
         }
+        return res.json({ insights: [] });
       }
       return res.json({ 
         insights: [
@@ -607,6 +642,8 @@ exports.getInsights = async (req, res, next) => {
 
 exports.getVoiceExplanation = async (req, res, next) => {
   try {
+    const { language = 'en' } = req.query;
+    const languageName = getLanguageName(language);
     const userId = req.user.id;
     const records = await HealthRecord.find({ patient: userId }).sort({ createdAt: -1 }).limit(5);
     const recordsSummary = records.map(r => `${r.title} (${r.category}): ${r.description}`).join('\n');
@@ -617,6 +654,7 @@ exports.getVoiceExplanation = async (req, res, next) => {
         content: `You are a helpful AI health assistant. Your task is to explain the user's recent medical records in very simple language, like explaining to a 10-year-old child.
         Focus on "what's in that" - specifically explain the most recent reports and important medical findings found in their records.
         Keep it very simple, friendly, and brief (max 3-4 sentences).
+        IMPORTANT: You MUST respond in the following language: ${languageName}.
         
         Recent Records:
         ${recordsSummary || 'No recent records found.'}` 
@@ -629,10 +667,29 @@ exports.getVoiceExplanation = async (req, res, next) => {
       messages,
     });
 
-    res.json({ explanation: completion.choices[0].message.content });
+    let explanation = completion.choices[0].message.content;
+    if (language !== 'en' && /[A-Za-z]/.test(explanation || '')) {
+      try {
+        const translationResponse = await openai.chat.completions.create({
+          model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional medical translator. Translate into ${languageName}. Do not leave any English words. Return only the translated text.`
+            },
+            { role: 'user', content: explanation }
+          ]
+        });
+        explanation = translationResponse.choices[0].message.content || explanation;
+      } catch (err) {
+        console.error('Failed to translate voice explanation', err);
+      }
+    }
+
+    res.json({ explanation });
   } catch (err) {
     console.error('AI Voice Explanation Error:', err);
-    res.status(500).json({ error: 'Failed to generate explanation' });
+    res.status(500).json({ error: getLocalizedMessage('en', 'aiUnavailable') });
   }
 };
 

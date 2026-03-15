@@ -17,6 +17,72 @@ function getLanguageName(code = 'en') {
   return LANGUAGE_NAMES[code] || 'English';
 }
 
+const LOCALIZED_MESSAGES = {
+  en: {
+    aiUnavailable: 'AI service is currently unavailable',
+    aiUnavailableShort: 'AI recommendations are currently unavailable. Please check back later or contact support.',
+    aiUnavailableWarning: 'AI service unavailable. Generated a safe fallback draft.',
+    clinicalFallback: 'AI service unavailable. Unable to generate clinical notes at this time.'
+  },
+  ml: {
+    aiUnavailable: 'എഐ സേവനം നിലവിൽ ലഭ്യമല്ല',
+    aiUnavailableShort: 'എഐ ശുപാർശകൾ ഇപ്പോൾ ലഭ്യമല്ല. പിന്നീടോ സഹായവുമായി ബന്ധപ്പെടുക.',
+    aiUnavailableWarning: 'എഐ സേവനം ലഭ്യമല്ല. സുരക്ഷിതമായ ഡ്രാഫ്റ്റ് നൽകി.',
+    clinicalFallback: 'എഐ സേവനം ലഭ്യമല്ല. ഇപ്പോള്‍ ക്ലിനിക്കല്‍ കുറിപ്പുകള്‍ സൃഷ്ടിക്കാനാവില്ല.'
+  },
+  hi: {
+    aiUnavailable: 'एआई सेवा अभी उपलब्ध नहीं है',
+    aiUnavailableShort: 'एआई सिफ़ारिशें अभी उपलब्ध नहीं हैं। बाद में कोशिश करें या सहायता से संपर्क करें।',
+    aiUnavailableWarning: 'एआई सेवा उपलब्ध नहीं। सुरक्षित ड्राफ्ट प्रदान किया गया।',
+    clinicalFallback: 'एआई सेवा उपलब्ध नहीं। अभी क्लिनिकल नोट्स तैयार नहीं किए जा सकते।'
+  },
+  ta: {
+    aiUnavailable: 'ஏஐ சேவை தற்போது கிடைக்கவில்லை',
+    aiUnavailableShort: 'ஏஐ பரிந்துரைகள் தற்போது கிடைக்கவில்லை. பின்னர் முயற்சிக்கவும் அல்லது ஆதரவை தொடர்புகொள்ளவும்.',
+    aiUnavailableWarning: 'ஏஐ சேவை கிடைக்கவில்லை. பாதுகாப்பான வரைவை வழங்கப்பட்டது.',
+    clinicalFallback: 'ஏஐ சேவை கிடைக்கவில்லை. தற்போது மருத்துவ குறிப்புகளை உருவாக்க முடியாது.'
+  },
+  bn: {
+    aiUnavailable: 'এআই সেবা বর্তমানে উপলভ্য নয়',
+    aiUnavailableShort: 'এআই সুপারিশ এখন উপলভ্য নয়। পরে চেষ্টা করুন বা সহায়তার সাথে যোগাযোগ করুন।',
+    aiUnavailableWarning: 'এআই সেবা উপলভ্য নয়। নিরাপদ খসড়া দেওয়া হয়েছে।',
+    clinicalFallback: 'এআই সেবা উপলভ্য নয়। এই মুহূর্তে ক্লিনিকাল নোট তৈরি করা যায় না।'
+  },
+  kn: {
+    aiUnavailable: 'ಎಐ ಸೇವೆ ಪ್ರಸ್ತುತ ಲಭ್ಯವಿಲ್ಲ',
+    aiUnavailableShort: 'ಎಐ ಶಿಫಾರಸುಗಳು ಈಗ ಲಭ್ಯವಿಲ್ಲ. ನಂತರ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಸಹಾಯವನ್ನು ಸಂಪರ್ಕಿಸಿ.',
+    aiUnavailableWarning: 'ಎಐ ಸೇವೆ ಲಭ್ಯವಿಲ್ಲ. ಸುರಕ್ಷಿತ ಕರಡನ್ನು ನೀಡಲಾಗಿದೆ.',
+    clinicalFallback: 'ಎಐ ಸೇವೆ ಲಭ್ಯವಿಲ್ಲ. ಈಗ ಕ್ಲಿನಿಕಲ್ ನೋಟ್‌ಗಳನ್ನು ರಚಿಸಲಾಗುವುದಿಲ್ಲ.'
+  }
+};
+
+function getLocalizedMessage(language = 'en', key = 'aiUnavailable') {
+  return (LOCALIZED_MESSAGES[language] && LOCALIZED_MESSAGES[language][key]) || LOCALIZED_MESSAGES.en[key] || '';
+}
+
+async function translateIfNeeded(text, language = 'en') {
+  if (!text || language === 'en' || !/[A-Za-z]/.test(text)) return text;
+  if (!openai) return text;
+
+  const languageName = getLanguageName(language);
+  try {
+    const translationResponse = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a professional medical translator. Translate the text into ${languageName}. Do not leave any English words. Return only the translated text.`
+        },
+        { role: 'user', content: String(text) }
+      ]
+    });
+    return translationResponse.choices[0].message.content || text;
+  } catch (err) {
+    console.error('Translation failed', err);
+    return text;
+  }
+}
+
 // Initialize OpenAI client for Groq or Gemini (using OpenAI compatibility)
 let openai = null;
 if (process.env.AI_API_KEY && process.env.AI_API_KEY !== 'replace_with_your_api_key') {
@@ -49,21 +115,25 @@ function extractJsonObject(text = '') {
   }
 }
 
-function normalizeClinicalOutput(parsed, context) {
-  const fallbackNotes = `Patient: ${context.patient.name || 'Unknown'} | Age: ${context.patient.age || 'Unknown'} | Gender: ${context.patient.gender || 'Unknown'}.
+function normalizeClinicalOutput(parsed, context, language = 'en') {
+  const fallbackNotes = language === 'en'
+    ? `Patient: ${context.patient.name || 'Unknown'} | Age: ${context.patient.age || 'Unknown'} | Gender: ${context.patient.gender || 'Unknown'}.
 Primary review based on appointment (${context.appointment.specialty || 'General'}) and available records.
 Relevant chronic conditions: ${(context.patient.chronicConditions || []).join(', ') || 'None documented'}.
 Known allergies: ${(context.patient.allergies || []).join(', ') || 'None documented'}.
-Clinical impression: requires physician confirmation with physical exam and current vitals.`;
+Clinical impression: requires physician confirmation with physical exam and current vitals.`
+    : getLocalizedMessage(language, 'clinicalFallback');
 
-  const fallbackPrescriptions = [
-    {
-      medicine: 'Paracetamol',
-      dosage: '500 mg',
-      duration: '3 days',
-      instructions: 'Use only if fever/pain is present. Max 3 g/day.'
-    }
-  ];
+  const fallbackPrescriptions = language === 'en'
+    ? [
+        {
+          medicine: 'Paracetamol',
+          dosage: '500 mg',
+          duration: '3 days',
+          instructions: 'Use only if fever/pain is present. Max 3 g/day.'
+        }
+      ]
+    : [];
 
   const clinicalNotes = (parsed && typeof parsed.clinicalNotes === 'string' && parsed.clinicalNotes.trim())
     ? parsed.clinicalNotes.trim()
@@ -87,6 +157,7 @@ Clinical impression: requires physician confirmation with physical exam and curr
 }
 
 const generateSchemeRecommendations = async (patient, language = 'en') => {
+  const languageName = getLanguageName(language);
   const schemes = await Scheme.find({});
   const records = await HealthRecord.find({ patient: patient._id });
   
@@ -127,21 +198,21 @@ const generateSchemeRecommendations = async (patient, language = 'en') => {
   If they are definitely not eligible for a scheme, explain why based on the criteria. 
   Mention specific health conditions found in their history that match the scheme criteria.
   Return the response as a clear, structured summary with bullet points.
-  IMPORTANT: The entire response MUST be in the following language: ${language}.`;
+  IMPORTANT: The entire response MUST be in the following language: ${languageName}.`;
 
   if (!openai) {
-    return "AI recommendations are currently unavailable. Please check back later or contact support.";
+    return getLocalizedMessage(language, 'aiUnavailableShort');
   }
 
   const response = await openai.chat.completions.create({
     model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
     messages: [
-      { role: 'system', content: `You are an expert in health insurance and government health schemes in Kerala, India. You MUST respond in ${language}.` },
+      { role: 'system', content: `You are an expert in health insurance and government health schemes in Kerala, India. You MUST respond in ${languageName}.` },
       { role: 'user', content: prompt }
     ],
   });
 
-  return response.choices[0].message.content;
+  return translateIfNeeded(response.choices[0].message.content, language);
 };
 
 exports.generateSchemeRecommendations = generateSchemeRecommendations;
@@ -149,18 +220,19 @@ exports.generateSchemeRecommendations = generateSchemeRecommendations;
 exports.askAI = async (req, res) => {
   try {
     const { message, language = 'en' } = req.body;
+    const languageName = getLanguageName(language);
 
     if (!message) {
       return res.status(400).json({ message: 'Message is required' });
     }
 
     const messages = [
-      { role: 'system', content: `You are a helpful AI assistant for a Digital Health Record application. You process data but do not learn or maintain history. You MUST respond in ${language}.` },
+      { role: 'system', content: `You are a helpful AI assistant for a Digital Health Record application. You process data but do not learn or maintain history. You MUST respond in ${languageName}.` },
       { role: 'user', content: message }
     ];
 
     if (!openai) {
-      return res.status(503).json({ message: 'AI service is currently unavailable' });
+      return res.status(503).json({ message: getLocalizedMessage(language, 'aiUnavailable') });
     }
 
     const response = await openai.chat.completions.create({
@@ -169,12 +241,12 @@ exports.askAI = async (req, res) => {
     });
 
     res.json({
-      answer: response.choices[0].message.content,
+      answer: await translateIfNeeded(response.choices[0].message.content, language),
       usage: response.usage
     });
   } catch (error) {
     console.error('AI Error:', error);
-    res.status(500).json({ message: 'Error connecting to AI service' });
+    res.status(500).json({ message: getLocalizedMessage(req.body?.language || 'en', 'aiUnavailable') });
   }
 };
 
@@ -197,6 +269,7 @@ exports.getAiSchemeRecommendations = async (req, res) => {
 exports.chatAboutSchemes = async (req, res) => {
   try {
     const { message, history, language = 'en' } = req.body;
+    const languageName = getLanguageName(language);
     const patient = await Patient.findById(req.user.id);
     const schemes = await Scheme.find({});
     const records = await HealthRecord.find({ patient: patient._id });
@@ -237,7 +310,7 @@ exports.chatAboutSchemes = async (req, res) => {
     Available Schemes:
     ${JSON.stringify(schemeData, null, 2)}
     
-    IMPORTANT: You MUST respond in the following language: ${language}.`;
+    IMPORTANT: You MUST respond in the following language: ${languageName}.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -246,7 +319,7 @@ exports.chatAboutSchemes = async (req, res) => {
     ];
 
     if (!openai) {
-      return res.status(503).json({ message: 'AI service is currently unavailable' });
+      return res.status(503).json({ message: getLocalizedMessage(language, 'aiUnavailable') });
     }
 
     const response = await openai.chat.completions.create({
@@ -255,12 +328,12 @@ exports.chatAboutSchemes = async (req, res) => {
     });
 
     res.json({
-      answer: response.choices[0].message.content,
+      answer: await translateIfNeeded(response.choices[0].message.content, language),
       usage: response.usage
     });
   } catch (error) {
     console.error('Scheme AI Chat Error:', error);
-    res.status(500).json({ message: 'Error connecting to AI service' });
+    res.status(500).json({ message: getLocalizedMessage(req.body?.language || 'en', 'aiUnavailable') });
   }
 };
 
@@ -361,13 +434,14 @@ exports.getHealthInsights = async (req, res) => {
     res.json({ insights });
   } catch (error) {
     console.error('Health Insights Error:', error);
-    res.status(500).json({ message: 'Error generating health insights' });
+    res.status(500).json({ message: getLocalizedMessage(req.query?.language || 'en', 'aiUnavailable') });
   }
 };
 
 exports.generateClinicalNotes = async (req, res) => {
   try {
     const { appointmentId, language = 'en' } = req.body;
+    const languageName = getLanguageName(language);
     if (!appointmentId) return res.status(400).json({ error: 'Appointment ID is required' });
 
     const appointment = await Appointment.findById(appointmentId);
@@ -415,15 +489,15 @@ exports.generateClinicalNotes = async (req, res) => {
     - Use professional medical terminology.
     - Be concise and accurate based on the provided static data.
     - Return ONLY valid JSON with no markdown and no extra commentary.
-    - IMPORTANT: The language for "clinicalNotes" and "instructions" in prescriptions MUST be: ${language}.
+    - IMPORTANT: The language for "clinicalNotes" and "instructions" in prescriptions MUST be: ${languageName}.
     `;
 
     if (!openai) {
-      const fallback = normalizeClinicalOutput(null, context);
+      const fallback = normalizeClinicalOutput(null, context, language);
       return res.json({
         ...fallback,
         generatedBy: 'fallback',
-        warning: 'AI service unavailable. Generated a safe fallback draft.'
+        warning: getLocalizedMessage(language, 'aiUnavailableWarning')
       });
     }
 
@@ -431,7 +505,7 @@ exports.generateClinicalNotes = async (req, res) => {
       const response = await openai.chat.completions.create({
         model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: `You are a static clinical assistant AI that processes provided data and does not learn or maintain state. You MUST respond in ${language}.` },
+        { role: 'system', content: `You are a static clinical assistant AI that processes provided data and does not learn or maintain state. You MUST respond in ${languageName}.` },
           { role: 'user', content: prompt }
         ],
         response_format: { type: 'json_object' }
@@ -439,26 +513,34 @@ exports.generateClinicalNotes = async (req, res) => {
 
       const raw = response?.choices?.[0]?.message?.content || '';
       const parsed = extractJsonObject(raw);
-      const result = normalizeClinicalOutput(parsed, context);
-      return res.json({ ...result, generatedBy: 'ai' });
+      const result = normalizeClinicalOutput(parsed, context, language);
+      const clinicalNotes = await translateIfNeeded(result.clinicalNotes, language);
+      const prescriptions = Array.isArray(result.prescriptions)
+        ? await Promise.all(result.prescriptions.map(async (p) => ({
+            ...p,
+            instructions: await translateIfNeeded(p.instructions, language)
+          })))
+        : result.prescriptions;
+      return res.json({ ...result, clinicalNotes, prescriptions, generatedBy: 'ai' });
     } catch (aiError) {
       console.error('Clinical Notes AI provider error:', aiError);
-      const fallback = normalizeClinicalOutput(null, context);
+      const fallback = normalizeClinicalOutput(null, context, language);
       return res.json({
         ...fallback,
         generatedBy: 'fallback',
-        warning: 'AI service unavailable. Generated a safe fallback draft.'
+        warning: getLocalizedMessage(language, 'aiUnavailableWarning')
       });
     }
   } catch (error) {
     console.error('Clinical Notes Generation Error:', error);
-    res.status(500).json({ message: 'Error generating clinical notes', error: error.message });
+    res.status(500).json({ message: getLocalizedMessage(req.body?.language || 'en', 'aiUnavailable'), error: error.message });
   }
 };
 
 exports.clinicalChat = async (req, res) => {
   try {
     const { messages, patientId, appointmentId, language = 'en' } = req.body;
+    const languageName = getLanguageName(language);
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ message: 'Messages array is required' });
@@ -504,7 +586,7 @@ exports.clinicalChat = async (req, res) => {
     You provide clinical decision support, summarize patient history, and help with medical queries.
     Always maintain a professional, clinical tone.
     Your answers should be evidence-based and concise.
-    IMPORTANT: You MUST respond in the following language: ${language}.
+    IMPORTANT: You MUST respond in the following language: ${languageName}.
     ${Object.keys(contextData).length > 0 ? `\n\nContext for current clinical case:\n${JSON.stringify(contextData, null, 2)}` : ''}`;
 
     const apiMessages = [
@@ -513,7 +595,7 @@ exports.clinicalChat = async (req, res) => {
     ];
 
     if (!openai) {
-      return res.status(503).json({ message: 'AI service is currently unavailable' });
+      return res.status(503).json({ message: getLocalizedMessage(language, 'aiUnavailable') });
     }
 
     const response = await openai.chat.completions.create({
@@ -522,11 +604,81 @@ exports.clinicalChat = async (req, res) => {
     });
 
     res.json({
-      answer: response.choices[0].message.content,
+      answer: await translateIfNeeded(response.choices[0].message.content, language),
       usage: response.usage
     });
   } catch (error) {
     console.error('Clinical Chat Error:', error);
-    res.status(500).json({ message: 'Error connecting to AI service' });
+    res.status(500).json({ message: getLocalizedMessage(req.body?.language || 'en', 'aiUnavailable') });
+  }
+};
+
+exports.translateUi = async (req, res) => {
+  try {
+    const { text = '', language = 'en' } = req.body || {};
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) return res.json({ translation: '' });
+    if (language === 'en') return res.json({ translation: normalizedText });
+
+    if (!openai) {
+      return res.json({ translation: normalizedText });
+    }
+
+    const languageName = getLanguageName(language);
+    const response = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a professional translator. Translate into ${languageName}. Do not leave any English words. Return only the translated text.`
+        },
+        { role: 'user', content: normalizedText }
+      ]
+    });
+
+    const translation = response?.choices?.[0]?.message?.content || normalizedText;
+    res.json({ translation });
+  } catch (error) {
+    console.error('UI Translation Error:', error);
+    res.status(500).json({ translation: '' });
+  }
+};
+
+exports.translateUiBatch = async (req, res) => {
+  try {
+    const { items = [], language = 'en' } = req.body || {};
+    const texts = Array.isArray(items) ? items.map((t) => String(t || '').trim()) : [];
+    if (texts.length === 0) return res.json({ translations: [] });
+    if (language === 'en') return res.json({ translations: texts });
+
+    if (!openai) {
+      return res.json({ translations: texts });
+    }
+
+    const languageName = getLanguageName(language);
+    const prompt = `Translate the following list of UI strings into ${languageName}. Do not leave any English words.
+Return ONLY a JSON object with a "translations" array in the SAME order.
+
+List:
+${JSON.stringify(texts)}`;
+
+    const response = await openai.chat.completions.create({
+      model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a professional UI translator. Respond only with JSON.`
+        },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' }
+    });
+
+    const parsed = extractJsonObject(response?.choices?.[0]?.message?.content || '');
+    const translations = Array.isArray(parsed?.translations) ? parsed.translations : texts;
+    res.json({ translations });
+  } catch (error) {
+    console.error('UI Batch Translation Error:', error);
+    res.status(500).json({ translations: [] });
   }
 };

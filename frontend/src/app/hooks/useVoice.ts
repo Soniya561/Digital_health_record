@@ -1,18 +1,40 @@
 import { useCallback, useRef, useState } from 'react';
 import { getSecureContextInfo } from '@/app/utils/secureContext';
 
-export function useVoice(onResult: (result: string) => void, language: string = 'en') {
+type VoiceStrings = {
+  speechNotSupported?: string;
+  voiceNeedsHttps?: string;
+  voiceBlockedHttp?: string;
+  voiceMicPermission?: string;
+};
+
+function formatMessage(template: string, vars: Record<string, string>) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] || '');
+}
+
+export function useVoice(
+  onResult: (result: string) => void,
+  language: string = 'en',
+  strings: VoiceStrings = {}
+) {
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
   const { host, isLocalHost, isSecureContextOk, secureOriginUrl, message: secureMessage } = getSecureContextInfo();
+  const messages = {
+    speechNotSupported: 'Speech recognition not supported',
+    voiceNeedsHttps: 'Voice input needs HTTPS on {{host}}. Open the app on localhost or use HTTPS.',
+    voiceBlockedHttp: 'Voice input is blocked on {{host}} over HTTP. Use HTTPS or localhost.',
+    voiceMicPermission: 'Please allow microphone access for {{host}} in your browser site settings.',
+    ...strings
+  };
 
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setError('Speech recognition not supported');
+      setError(messages.speechNotSupported);
       return;
     }
 
@@ -21,7 +43,7 @@ export function useVoice(onResult: (result: string) => void, language: string = 
     }
 
     if (!window.isSecureContext && !isLocalHost) {
-      setError(secureMessage || `Voice input needs HTTPS on ${host}. Open the app on localhost or use HTTPS.`);
+      setError(secureMessage || formatMessage(messages.voiceNeedsHttps, { host }));
       return;
     }
 
@@ -40,6 +62,9 @@ export function useVoice(onResult: (result: string) => void, language: string = 
         break;
       case 'bn':
         recognition.lang = 'bn-IN';
+        break;
+      case 'ta':
+        recognition.lang = 'ta-IN';
         break;
       case 'kn':
         recognition.lang = 'kn-IN';
@@ -67,7 +92,7 @@ export function useVoice(onResult: (result: string) => void, language: string = 
       const code = event?.error || 'speech-error';
 
       if ((code === 'not-allowed' || code === 'service-not-allowed') && !window.isSecureContext && !isLocalHost) {
-        setError(secureMessage || `Voice input is blocked on ${host} over HTTP. Use HTTPS or localhost.`);
+        setError(secureMessage || formatMessage(messages.voiceBlockedHttp, { host }));
         setIsListening(false);
         recognitionRef.current = null;
         return;
@@ -75,8 +100,8 @@ export function useVoice(onResult: (result: string) => void, language: string = 
 
       setError(
         code === 'not-allowed' || code === 'service-not-allowed'
-          ? `Please allow microphone access for ${host} in your browser site settings.`
-          : code
+          ? formatMessage(messages.voiceMicPermission, { host })
+          : messages.speechNotSupported
       );
       setIsListening(false);
       recognitionRef.current = null;

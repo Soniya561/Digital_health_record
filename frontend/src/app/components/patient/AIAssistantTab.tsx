@@ -78,6 +78,9 @@ export function AIAssistantTab() {
         case 'bn':
           utterance.lang = 'bn-IN';
           break;
+        case 'ta':
+          utterance.lang = 'ta-IN';
+          break;
         case 'kn':
           utterance.lang = 'kn-IN';
           break;
@@ -110,13 +113,18 @@ export function AIAssistantTab() {
     setInputMessage(result);
     // Automatically send if voice result received
     setTimeout(() => handleSendMessage(result), 500);
-  }, language);
+  }, language, {
+    speechNotSupported: t('voiceInputError'),
+    voiceNeedsHttps: t('voiceInputNeedsHttps'),
+    voiceBlockedHttp: t('voiceInputNeedsHttps'),
+    voiceMicPermission: t('voiceInputError')
+  });
 
   const quickActions = [
-    '📋 Explain my latest report',
-    '💊 My medication schedule',
-    '⚠️ Health risk analysis',
-    '🏥 Nearby hospitals',
+    t('quickActionExplainLatest'),
+    t('quickActionMedicationSchedule'),
+    t('quickActionRiskAnalysis'),
+    t('quickActionNearbyHospitals'),
   ];
 
   const handleSendMessage = async (overrideMessage?: string) => {
@@ -141,7 +149,7 @@ export function AIAssistantTab() {
       }));
       
       const prompt = isELIMode && !overrideMessage
-        ? `Explain the following query in very simple terms, as if you are talking to a 10-year-old child. Avoid medical jargon. Query: ${messageText}`
+        ? t('eliPrompt').replace('{{query}}', messageText)
         : messageText;
 
       const res = await api.post('/records/ai/chat', { 
@@ -160,7 +168,7 @@ export function AIAssistantTab() {
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: 'Sorry, I am having trouble connecting to the server. ' + (err.message || ''),
+        content: t('aiServerError'),
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorResponse]);
@@ -168,7 +176,7 @@ export function AIAssistantTab() {
   };
 
   const handleQuickAction = (action: string) => {
-    setInputMessage(action.substring(2).trim());
+    setInputMessage(action);
   };
 
   return (
@@ -329,7 +337,7 @@ export function AIAssistantTab() {
         {/* Input */}
         {!isSecureContextOk && (
           <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex items-center justify-between gap-3">
-            <span>Voice input needs HTTPS on this device.</span>
+            <span>{t('voiceInputNeedsHttps')}</span>
             <Button
               variant="outline"
               size="sm"
@@ -337,13 +345,13 @@ export function AIAssistantTab() {
                 if (secureOriginUrl) window.location.href = secureOriginUrl;
               }}
             >
-              Open HTTPS
+              {t('openHttps')}
             </Button>
           </div>
         )}
         {voiceError && (
           <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-            Voice input: {voiceError}
+            {t('voiceInputError')}
           </div>
         )}
         <div className="flex gap-2">
@@ -423,7 +431,9 @@ export function AIAssistantTab() {
                   const lastAIMessage = [...messages].reverse().find(m => m.type === 'ai');
                   if (lastAIMessage) {
                     setShouldSpeakNext(true);
-                    handleSendMessage(`Please explain your previous response in very simple terms (Explain like I'm 10): "${lastAIMessage.content}"`);
+                    handleSendMessage(
+                      t('eliExplainPreviousPrompt').replace('{{response}}', lastAIMessage.content)
+                    );
                   } else {
                     speak(t('explainLike10Desc'));
                   }

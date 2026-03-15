@@ -7,6 +7,8 @@ import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { api } from '@/app/utils/api';
 import { getSecureContextInfo } from '@/app/utils/secureContext';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { useTranslation } from '@/app/utils/translations';
 
 interface ScanQRTabProps {
   onNavigate?: (tabId: string) => void;
@@ -15,6 +17,8 @@ interface ScanQRTabProps {
 }
 
 export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: ScanQRTabProps) {
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [isScanning, setIsScanning] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -164,7 +168,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
     setScanError(null);
 
     if (!secureInfo.isSecureContextOk) {
-      setScanError(secureInfo.message || 'Camera access needs HTTPS. Open the app on localhost or use HTTPS.');
+      setScanError(t('secureContextRequired'));
       return;
     }
 
@@ -239,7 +243,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
 
         {!secureInfo.isSecureContextOk && (
           <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-xs p-3">
-            <p>{secureInfo.message || 'Camera access needs HTTPS to work on this device.'}</p>
+            <p>{t('secureContextRequired')}</p>
             {secureInfo.secureOriginUrl && (
               <Button
                 variant="outline"
@@ -249,7 +253,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
                   window.location.href = secureInfo.secureOriginUrl;
                 }}
               >
-                Open HTTPS
+                {t('openHttps')}
               </Button>
             )}
           </div>

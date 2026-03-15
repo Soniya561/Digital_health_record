@@ -227,7 +227,7 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
     setScanError(null);
 
     if (!secureInfo.isSecureContextOk) {
-      setScanError(secureInfo.message || 'Camera access needs HTTPS. Open the app on localhost or use HTTPS.');
+      setScanError(t('secureContextRequired'));
       return;
     }
 
@@ -542,7 +542,7 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
 
           {!secureInfo.isSecureContextOk && (
             <div className="w-full rounded-lg border border-blue-800 bg-blue-900/40 text-blue-100 text-xs p-3">
-              <p>{secureInfo.message || 'Camera access needs HTTPS to work on this device.'}</p>
+              <p>{t('secureContextRequired')}</p>
               {secureInfo.secureOriginUrl && (
                 <Button
                   type="button"
@@ -553,7 +553,7 @@ export function PatientDashboard({ onLogout, language, user: initialUser }: Pati
                     window.location.href = secureInfo.secureOriginUrl;
                   }}
                 >
-                  Open HTTPS
+                  {t('openHttps')}
                 </Button>
               )}
             </div>

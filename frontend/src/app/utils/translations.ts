@@ -1,3 +1,6 @@
+import { useCallback, useEffect, useState } from 'react';
+import { api } from '@/app/utils/api';
+
 export const translations: Record<string, any> = {
   en: {
     welcome: "Welcome Back",
@@ -102,6 +105,62 @@ export const translations: Record<string, any> = {
     explainLike10: "Explain Like I'm 10 Mode",
     explainLike10Desc: "Don't understand medical terms? I can explain your reports in the simplest language possible, just like talking to a child.",
     tryVoiceExplanation: "Try Voice Explanation",
+    eliPrompt: "Please explain this in very simple terms (like for a 10-year-old): {{query}}",
+    eliExplainPreviousPrompt: "Please explain your previous response in very simple terms (Explain like I'm 10): \"{{response}}\"",
+    quickActionExplainLatest: "Explain my latest report",
+    quickActionMedicationSchedule: "My medication schedule",
+    quickActionRiskAnalysis: "Health risk analysis",
+    quickActionNearbyHospitals: "Nearby hospitals",
+    voiceInputNeedsHttps: "Voice input needs HTTPS on this device.",
+    secureContextRequired: "Camera access needs HTTPS on this device.",
+    openHttps: "Open HTTPS",
+    voiceInputError: "Voice input error.",
+    aiServerError: "Sorry, I'm having trouble connecting to the server.",
+    listening: "Listening...",
+    missingTranslation: "Translation unavailable",
+    // AI Clinical
+    aiClinicalAssistantTitle: "AI Clinical Assistant",
+    aiClinicalAssistantSubtitle: "Context-aware medical decision support",
+    clearChat: "Clear",
+    chatCleared: "Chat cleared. How can I help you now?",
+    clinicalAssistantGreeting: "Hello Doctor. I'm your AI Clinical Assistant. I can help you analyze patient data, suggest clinical notes, or answer medical queries. How can I assist you today?",
+    clinicalAskPlaceholder: "Ask about patient history, symptoms, or medications...",
+    clinicalContext: "Clinical Context",
+    activeAppointment: "Active Appointment",
+    loading: "Loading...",
+    noAppointmentsForPatient: "No appointments for this patient",
+    draftClinicalNotes: "Draft Clinical Notes",
+    analyzePatientRisks: "Analyze Patient Risks",
+    suggestTreatmentPlan: "Suggest Treatment Plan",
+    analyzePatientRisksPrompt: "Analyze this patient's history for potential risks or allergies.",
+    suggestTreatmentPlanPrompt: "Suggest a treatment plan for the current symptoms based on medical best practices.",
+    decisionSupportOnly: "Decision Support Only:",
+    decisionSupportDisclaimer: "AI responses must be reviewed by a licensed professional before clinical implementation.",
+    saveToAppointment: "Save to Appointment",
+    clinicalNotesGenerated: "Clinical notes generated below.",
+    clinicalNotesSaved: "Clinical notes saved to appointment",
+    selectAppointmentFirst: "Please select an appointment first.",
+    selectAppointmentFirstShort: "Select an appointment first",
+    failedGetAiResponse: "Failed to get AI response",
+    failedGenerateNotes: "Failed to generate notes",
+    failedSaveClinicalNotes: "Failed to save clinical notes",
+    clinicalSummaryLabel: "Clinical Summary",
+    suggestedPrescriptionsLabel: "Suggested Prescriptions",
+    noteLabel: "Note",
+    prescriptionLine: "{{index}}. {{medicine}} ({{dosage}}) - {{duration}}. {{instructions}}",
+    generalLabel: "General",
+    // Schemes (AI + form)
+    aiDetected: "AI Detected",
+    activeApplied: "Active / Applied",
+    selectPlaceholder: "Select...",
+    incomePlaceholder: "e.g. 150000",
+    chronicConditionsPlaceholder: "e.g. Diabetes, Hypertension (comma separated)",
+    failedToLoadSchemes: "Failed to load schemes",
+    failedToUpdateDetails: "Failed to update details",
+    failedToApply: "Failed to apply",
+    aiRecommendationsUpdated: "AI recommendations updated",
+    failedToRefreshAi: "Failed to refresh AI recommendations",
+    failedToGetAiResponse: "Failed to get AI response",
     // Appointments
     upcomingAppointments: "upcoming appointments",
     bookNew: "Book New",
@@ -497,6 +556,60 @@ export const translations: Record<string, any> = {
     "Imaging": "ചിത്രീകരണം",
     "X-Ray/Scan": "രശ്മിചിത്രം/പരിശോധന",
     "Clinical Notes": "ചികിത്സാ കുറിപ്പുകൾ",
+    eliPrompt: "ഇതു ഒരു 10 വയസ്സുകാരനോട് പറയുന്ന പോലെ വളരെ ലളിതമായി വിശദീകരിക്കുക: {{query}}",
+    eliExplainPreviousPrompt: "നിങ്ങളുടെ മുൻപ് നൽകിയ മറുപടി 10 വയസ്സുകാരനോട് പറയുന്ന പോലെ ലളിതമായി വിശദീകരിക്കുക: \"{{response}}\"",
+    quickActionExplainLatest: "എൻറെ ഏറ്റവും പുതിയ റിപ്പോർട്ട് വിശദീകരിക്കുക",
+    quickActionMedicationSchedule: "എൻറെ മരുന്നുകളുടെ സമയക്രമം",
+    quickActionRiskAnalysis: "ആരോഗ്യ അപകട വിലയിരുത്തൽ",
+    quickActionNearbyHospitals: "അടുത്തുള്ള ആശുപത്രികൾ",
+    voiceInputNeedsHttps: "ഈ ഉപകരണത്തിൽ ശബ്ദ ഇൻപുട്ടിന് HTTPS ആവശ്യമാണ്.",
+    secureContextRequired: "ഈ ഉപകരണത്തിൽ ക്യാമറ ആക്‌സസിന് HTTPS ആവശ്യമാണ്.",
+    openHttps: "HTTPS തുറക്കുക",
+    voiceInputError: "ശബ്ദ ഇൻപുട്ട് പിശക്.",
+    aiServerError: "ക്ഷമിക്കണം, സർവറുമായി ബന്ധപ്പെടാൻ ബുദ്ധിമുട്ടുണ്ട്.",
+    listening: "ശ്രദ്ധിക്കുന്നു...",
+    missingTranslation: "ഭാഷാന്തരം ലഭ്യമല്ല",
+    aiClinicalAssistantTitle: "എഐ ക്ലിനിക്കൽ സഹായി",
+    aiClinicalAssistantSubtitle: "സന്ദർഭബോധമുള്ള മെഡിക്കൽ നിർണ്ണയ സഹായം",
+    clearChat: "ക്ലിയർ",
+    chatCleared: "ചാറ്റ് ക്ലിയർ ചെയ്തു. ഇനി എങ്ങനെ സഹായിക്കാം?",
+    clinicalAssistantGreeting: "ഡോക്ടർ, നമസ്കാരം. ഞാൻ നിങ്ങളുടെ എഐ ക്ലിനിക്കൽ സഹായി. രോഗിയുടെ ഡാറ്റ വിശകലനം ചെയ്യാനും ക്ലിനിക്കൽ കുറിപ്പുകൾ നിർദ്ദേശിക്കാനും ചോദ്യങ്ങൾക്ക് ഉത്തരം പറയാനും സഹായിക്കും. ഇന്ന് എങ്ങനെ സഹായിക്കാം?",
+    clinicalAskPlaceholder: "രോഗിയുടെ ചരിത്രം, ലക്ഷണങ്ങൾ, മരുന്നുകൾ എന്നിവയെ കുറിച്ച് ചോദിക്കുക...",
+    clinicalContext: "ക്ലിനിക്കൽ സന്ദർഭം",
+    activeAppointment: "സജീവ അപ്പോയിന്റ്മെന്റ്",
+    loading: "ലോഡ് ചെയ്യുന്നു...",
+    noAppointmentsForPatient: "ഈ രോഗിയ്ക്ക് അപ്പോയിന്റ്മെന്റുകളില്ല",
+    draftClinicalNotes: "ക്ലിനിക്കൽ കുറിപ്പുകൾ ഡ്രാഫ്റ്റ് ചെയ്യുക",
+    analyzePatientRisks: "രോഗിയുടെ അപകടങ്ങൾ വിശകലനം ചെയ്യുക",
+    suggestTreatmentPlan: "ചികിത്സാ പദ്ധതി നിർദ്ദേശിക്കുക",
+    analyzePatientRisksPrompt: "രോഗിയുടെ ചരിത്രം പരിശോധിച്ച് സാധ്യതയുള്ള അപകടങ്ങളും അലർജികളും വിശകലനം ചെയ്യുക.",
+    suggestTreatmentPlanPrompt: "നിലവിലെ ലക്ഷണങ്ങളെ അടിസ്ഥാനമാക്കി മികച്ച മെഡിക്കൽ രീതികൾ പ്രകാരം ചികിത്സാ പദ്ധതി നിർദ്ദേശിക്കുക.",
+    decisionSupportOnly: "നിർണ്ണയ സഹായം മാത്രം:",
+    decisionSupportDisclaimer: "എഐ മറുപടികൾ ക്ലിനിക്കൽ ഉപയോഗത്തിനുമുന്‍പ് ലൈസൻസുള്ള വിദഗ്ദ്ധൻ പരിശോധിക്കണം.",
+    saveToAppointment: "അപ്പോയിന്റ്മെന്റിൽ സേവ് ചെയ്യുക",
+    clinicalNotesGenerated: "ക്ലിനിക്കൽ കുറിപ്പുകൾ താഴെ സൃഷ്ടിച്ചു.",
+    clinicalNotesSaved: "ക്ലിനിക്കൽ കുറിപ്പുകൾ അപ്പോയിന്റ്മെന്റിൽ സേവ് ചെയ്തു",
+    selectAppointmentFirst: "ആദ്യം ഒരു അപ്പോയിന്റ്മെന്റ് തിരഞ്ഞെടുക്കുക.",
+    selectAppointmentFirstShort: "ആദ്യം അപ്പോയിന്റ്മെന്റ് തിരഞ്ഞെടുക്കുക",
+    failedGetAiResponse: "എഐ മറുപടി ലഭിക്കാനായില്ല",
+    failedGenerateNotes: "കുറിപ്പുകൾ സൃഷ്ടിക്കാൻ കഴിഞ്ഞില്ല",
+    failedSaveClinicalNotes: "ക്ലിനിക്കൽ കുറിപ്പുകൾ സേവ് ചെയ്യാനായില്ല",
+    clinicalSummaryLabel: "ക്ലിനിക്കൽ സംഗ്രഹം",
+    suggestedPrescriptionsLabel: "നിർദ്ദേശിച്ച പ്രിസ്ക്രിപ്ഷനുകൾ",
+    noteLabel: "കുറിപ്പ്",
+    prescriptionLine: "{{index}}. {{medicine}} ({{dosage}}) - {{duration}}. {{instructions}}",
+    generalLabel: "സാധാരണ",
+    aiDetected: "എഐ കണ്ടെത്തിയത്",
+    activeApplied: "സജീവം / അപേക്ഷിച്ചു",
+    selectPlaceholder: "തിരഞ്ഞെടുക്കുക...",
+    incomePlaceholder: "ഉദാ. 150000",
+    chronicConditionsPlaceholder: "ഉദാ. പ്രമേഹം, രക്തസമ്മർദ്ദം (കോമാവച്ച്)",
+    failedToLoadSchemes: "പദ്ധതികൾ ലോഡ് ചെയ്യാനായില്ല",
+    failedToUpdateDetails: "വിശദാംശങ്ങൾ അപ്‌ഡേറ്റ് ചെയ്യാനായില്ല",
+    failedToApply: "അപേക്ഷ നൽകാനായില്ല",
+    aiRecommendationsUpdated: "എഐ ശുപാർശകൾ പുതുക്കി",
+    failedToRefreshAi: "എഐ ശുപാർശകൾ പുതുക്കാനായില്ല",
+    failedToGetAiResponse: "എഐ മറുപടി ലഭിക്കാനായില്ല",
   },
   hi: {
     welcome: "वापस स्वागत है",
@@ -673,6 +786,60 @@ export const translations: Record<string, any> = {
     "Imaging": "चित्रांकन",
     "X-Ray/Scan": "छायाचित्र/जांच",
     "Clinical Notes": "चिकित्सा संबंधी नोट्स",
+    eliPrompt: "इसे बहुत सरल शब्दों में समझाएं (जैसे 10 साल के बच्चे को): {{query}}",
+    eliExplainPreviousPrompt: "अपने पिछले उत्तर को 10 साल के बच्चे की तरह सरल शब्दों में समझाएं: \"{{response}}\"",
+    quickActionExplainLatest: "मेरी नवीनतम रिपोर्ट समझाएं",
+    quickActionMedicationSchedule: "मेरी दवा की समय-सारणी",
+    quickActionRiskAnalysis: "स्वास्थ्य जोखिम विश्लेषण",
+    quickActionNearbyHospitals: "नज़दीकी अस्पताल",
+    voiceInputNeedsHttps: "इस डिवाइस पर वॉइस इनपुट के लिए HTTPS आवश्यक है।",
+    secureContextRequired: "इस डिवाइस पर कैमरा एक्सेस के लिए HTTPS आवश्यक है।",
+    openHttps: "HTTPS खोलें",
+    voiceInputError: "वॉइस इनपुट त्रुटि।",
+    aiServerError: "माफ़ कीजिए, सर्वर से कनेक्ट करने में समस्या है।",
+    listening: "सुन रहा है...",
+    missingTranslation: "अनुवाद उपलब्ध नहीं है",
+    aiClinicalAssistantTitle: "एआई क्लिनिकल सहायक",
+    aiClinicalAssistantSubtitle: "संदर्भ-आधारित चिकित्सा निर्णय सहायता",
+    clearChat: "साफ़ करें",
+    chatCleared: "चैट साफ़ हो गया। अब कैसे मदद करूं?",
+    clinicalAssistantGreeting: "नमस्ते डॉक्टर। मैं आपका एआई क्लिनिकल सहायक हूँ। मैं रोगी डेटा का विश्लेषण, क्लिनिकल नोट्स सुझाने और प्रश्नों का उत्तर देने में मदद कर सकता हूँ। आज कैसे सहायता करूं?",
+    clinicalAskPlaceholder: "रोगी इतिहास, लक्षण या दवाओं के बारे में पूछें...",
+    clinicalContext: "क्लिनिकल संदर्भ",
+    activeAppointment: "सक्रिय अपॉइंटमेंट",
+    loading: "लोड हो रहा है...",
+    noAppointmentsForPatient: "इस रोगी के लिए कोई अपॉइंटमेंट नहीं",
+    draftClinicalNotes: "क्लिनिकल नोट्स ड्राफ्ट करें",
+    analyzePatientRisks: "रोगी जोखिम विश्लेषण",
+    suggestTreatmentPlan: "उपचार योजना सुझाएं",
+    analyzePatientRisksPrompt: "संभावित जोखिम या एलर्जी के लिए इस रोगी के इतिहास का विश्लेषण करें।",
+    suggestTreatmentPlanPrompt: "वर्तमान लक्षणों के आधार पर सर्वोत्तम चिकित्सा अभ्यासों के अनुसार उपचार योजना सुझाएं।",
+    decisionSupportOnly: "केवल निर्णय सहायता:",
+    decisionSupportDisclaimer: "क्लिनिकल उपयोग से पहले एआई उत्तरों की लाइसेंस प्राप्त विशेषज्ञ द्वारा समीक्षा आवश्यक है।",
+    saveToAppointment: "अपॉइंटमेंट में सहेजें",
+    clinicalNotesGenerated: "क्लिनिकल नोट्स नीचे बनाए गए हैं।",
+    clinicalNotesSaved: "क्लिनिकल नोट्स अपॉइंटमेंट में सहेज दिए गए",
+    selectAppointmentFirst: "कृपया पहले एक अपॉइंटमेंट चुनें।",
+    selectAppointmentFirstShort: "पहले अपॉइंटमेंट चुनें",
+    failedGetAiResponse: "एआई उत्तर प्राप्त नहीं हुआ",
+    failedGenerateNotes: "नोट्स तैयार नहीं हो सके",
+    failedSaveClinicalNotes: "क्लिनिकल नोट्स सहेज नहीं सके",
+    clinicalSummaryLabel: "क्लिनिकल सारांश",
+    suggestedPrescriptionsLabel: "प्रस्तावित प्रिस्क्रिप्शन",
+    noteLabel: "नोट",
+    prescriptionLine: "{{index}}. {{medicine}} ({{dosage}}) - {{duration}}. {{instructions}}",
+    generalLabel: "सामान्य",
+    aiDetected: "एआई द्वारा पहचान",
+    activeApplied: "सक्रिय / आवेदन किया",
+    selectPlaceholder: "चुनें...",
+    incomePlaceholder: "उदा. 150000",
+    chronicConditionsPlaceholder: "उदा. मधुमेह, उच्च रक्तचाप (कॉमा से अलग)",
+    failedToLoadSchemes: "योजनाएँ लोड नहीं हो सकीं",
+    failedToUpdateDetails: "विवरण अपडेट नहीं हो सके",
+    failedToApply: "आवेदन नहीं हो सका",
+    aiRecommendationsUpdated: "एआई सिफ़ारिशें अपडेट हुईं",
+    failedToRefreshAi: "एआई सिफ़ारिशें रिफ्रेश नहीं हो सकीं",
+    failedToGetAiResponse: "एआई उत्तर नहीं मिला",
   },
   ta: {
     welcome: "மீண்டும் வருக",
@@ -845,6 +1012,60 @@ export const translations: Record<string, any> = {
     "Imaging": "பிம்பமாக்கம்",
     "X-Ray/Scan": "எக்ஸ்-ரே/வருடல்",
     "Clinical Notes": "மருத்துவக் குறிப்புகள்",
+    eliPrompt: "இதை மிகவும் எளிய வார்த்தைகளில் விளக்கவும் (10 வயது குழந்தைக்கு சொல்லுவது போல): {{query}}",
+    eliExplainPreviousPrompt: "உங்கள் முந்தைய பதிலை 10 வயது குழந்தைக்கு சொல்லுவது போல எளிய வார்த்தைகளில் விளக்கவும்: \"{{response}}\"",
+    quickActionExplainLatest: "என் சமீபத்திய அறிக்கையை விளக்கவும்",
+    quickActionMedicationSchedule: "என் மருந்து அட்டவணை",
+    quickActionRiskAnalysis: "சுகாதார அபாய பகுப்பாய்வு",
+    quickActionNearbyHospitals: "அருகிலுள்ள மருத்துவமனைகள்",
+    voiceInputNeedsHttps: "இந்த சாதனத்தில் குரல் உள்ளீட்டுக்கு HTTPS தேவையாகும்.",
+    secureContextRequired: "இந்த சாதனத்தில் கேமரா அணுகலுக்கு HTTPS தேவையாகும்.",
+    openHttps: "HTTPS திறக்கவும்",
+    voiceInputError: "குரல் உள்ளீட்டு பிழை.",
+    aiServerError: "மன்னிக்கவும், சேவையகத்துடன் இணைக்க முடியவில்லை.",
+    listening: "கேட்கிறது...",
+    missingTranslation: "மொழிபெயர்ப்பு கிடைக்கவில்லை",
+    aiClinicalAssistantTitle: "ஏஐ மருத்துவ உதவி",
+    aiClinicalAssistantSubtitle: "சூழல் அறிந்த மருத்துவ முடிவு உதவி",
+    clearChat: "அழிக்கவும்",
+    chatCleared: "அரட்டை அழிக்கப்பட்டது. இப்போது எப்படி உதவலாம்?",
+    clinicalAssistantGreeting: "வணக்கம் மருத்துவர். நான் உங்கள் ஏஐ மருத்துவ உதவி. நோயாளி தரவுகளை பகுப்பாய்வு செய்யவும், மருத்துவ குறிப்புகள் பரிந்துரைக்கவும், கேள்விகளுக்கு பதில் அளிக்கவும் உதவுகிறேன். இன்று எப்படி உதவ வேண்டும்?",
+    clinicalAskPlaceholder: "நோயாளர் வரலாறு, அறிகுறிகள் அல்லது மருந்துகள் குறித்து கேளுங்கள்...",
+    clinicalContext: "மருத்துவ சூழல்",
+    activeAppointment: "செயலில் இருக்கும் நேர்காணல்",
+    loading: "ஏற்றுகிறது...",
+    noAppointmentsForPatient: "இந்த நோயாளிக்கான நேர்காணல்கள் இல்லை",
+    draftClinicalNotes: "மருத்துவ குறிப்புகளை வரைவு செய்யவும்",
+    analyzePatientRisks: "நோயாளர் அபாயங்களை பகுப்பாய்வு செய்யவும்",
+    suggestTreatmentPlan: "சிகிச்சை திட்டத்தை பரிந்துரைக்கவும்",
+    analyzePatientRisksPrompt: "சாத்தியமான அபாயங்கள் அல்லது அலர்ஜிகளுக்காக இந்த நோயாளியின் வரலாற்றை பகுப்பாய்வு செய்யவும்.",
+    suggestTreatmentPlanPrompt: "தற்போதைய அறிகுறிகளை அடிப்படையாக கொண்டு சிறந்த மருத்துவ நடைமுறைகளின் படி சிகிச்சை திட்டத்தை பரிந்துரைக்கவும்.",
+    decisionSupportOnly: "முடிவு உதவி மட்டும்:",
+    decisionSupportDisclaimer: "கிளினிக்கல் பயன்பாட்டுக்கு முன் ஏஐ பதில்கள் உரிமம் பெற்ற நிபுணரால் பரிசீலிக்கப்பட வேண்டும்.",
+    saveToAppointment: "நேர்காணலில் சேமிக்கவும்",
+    clinicalNotesGenerated: "மருத்துவ குறிப்புகள் கீழே உருவாக்கப்பட்டுள்ளன.",
+    clinicalNotesSaved: "மருத்துவ குறிப்புகள் நேர்காணலில் சேமிக்கப்பட்டது",
+    selectAppointmentFirst: "முதலில் ஒரு நேர்காணலைத் தேர்ந்தெடுக்கவும்.",
+    selectAppointmentFirstShort: "முதலில் நேர்காணலைத் தேர்ந்தெடுக்கவும்",
+    failedGetAiResponse: "ஏஐ பதில் கிடைக்கவில்லை",
+    failedGenerateNotes: "குறிப்புகள் உருவாக்க முடியவில்லை",
+    failedSaveClinicalNotes: "மருத்துவ குறிப்புகளை சேமிக்க முடியவில்லை",
+    clinicalSummaryLabel: "மருத்துவ சுருக்கம்",
+    suggestedPrescriptionsLabel: "பரிந்துரைக்கப்பட்ட மருந்துகள்",
+    noteLabel: "குறிப்பு",
+    prescriptionLine: "{{index}}. {{medicine}} ({{dosage}}) - {{duration}}. {{instructions}}",
+    generalLabel: "பொது",
+    aiDetected: "ஏஐ கண்டறிந்தது",
+    activeApplied: "செயலில் / விண்ணப்பிக்கப்பட்டது",
+    selectPlaceholder: "தேர்ந்தெடுக்கவும்...",
+    incomePlaceholder: "எ.கா. 150000",
+    chronicConditionsPlaceholder: "எ.கா. நீரிழிவு, உயர் இரத்த அழுத்தம் (கமாவால் பிரிக்கவும்)",
+    failedToLoadSchemes: "திட்டங்களை ஏற்ற முடியவில்லை",
+    failedToUpdateDetails: "விவரங்களைப் புதுப்பிக்க முடியவில்லை",
+    failedToApply: "விண்ணப்பிக்க முடியவில்லை",
+    aiRecommendationsUpdated: "ஏஐ பரிந்துரைகள் புதுப்பிக்கப்பட்டன",
+    failedToRefreshAi: "ஏஐ பரிந்துரைகளை புதுப்பிக்க முடியவில்லை",
+    failedToGetAiResponse: "ஏஐ பதில் கிடைக்கவில்லை",
   },
   bn: {
     welcome: "আবার স্বাগতম",
@@ -1020,12 +1241,176 @@ export const translations: Record<string, any> = {
     "Imaging": "চিত্রণ",
     "X-Ray/Scan": "রঞ্জনরশ্মি/নিরীক্ষণ",
     "Clinical Notes": "চিকিৎসা সংক্রান্ত নোট",
+    eliPrompt: "এটি খুব সহজ ভাষায় বুঝিয়ে দিন (১০ বছরের শিশুকে বোঝানোর মতো): {{query}}",
+    eliExplainPreviousPrompt: "আপনার আগের উত্তরটি ১০ বছরের শিশুকে বোঝানোর মতো সহজ ভাষায় ব্যাখ্যা করুন: \"{{response}}\"",
+    quickActionExplainLatest: "আমার সর্বশেষ রিপোর্ট ব্যাখ্যা করুন",
+    quickActionMedicationSchedule: "আমার ওষুধের সময়সূচি",
+    quickActionRiskAnalysis: "স্বাস্থ্য ঝুঁকি বিশ্লেষণ",
+    quickActionNearbyHospitals: "কাছাকাছি হাসপাতাল",
+    voiceInputNeedsHttps: "এই ডিভাইসে ভয়েস ইনপুটের জন্য HTTPS প্রয়োজন।",
+    secureContextRequired: "এই ডিভাইসে ক্যামেরা ব্যবহারের জন্য HTTPS প্রয়োজন।",
+    openHttps: "HTTPS খুলুন",
+    voiceInputError: "ভয়েস ইনপুট ত্রুটি।",
+    aiServerError: "দুঃখিত, সার্ভারের সাথে সংযোগ করতে সমস্যা হচ্ছে।",
+    listening: "শুনছে...",
+    missingTranslation: "অনুবাদ উপলভ্য নয়",
+    aiClinicalAssistantTitle: "এআই ক্লিনিকাল সহকারী",
+    aiClinicalAssistantSubtitle: "প্রসঙ্গভিত্তিক চিকিৎসা সিদ্ধান্ত সহায়তা",
+    clearChat: "ক্লিয়ার",
+    chatCleared: "চ্যাট ক্লিয়ার হয়েছে। এখন কীভাবে সাহায্য করি?",
+    clinicalAssistantGreeting: "হ্যালো ডাক্তার। আমি আপনার এআই ক্লিনিকাল সহকারী। রোগীর তথ্য বিশ্লেষণ, ক্লিনিকাল নোট সাজেশন এবং প্রশ্নের উত্তর দিতে সাহায্য করি। আজ কীভাবে সাহায্য করতে পারি?",
+    clinicalAskPlaceholder: "রোগীর ইতিহাস, উপসর্গ বা ওষুধ সম্পর্কে জিজ্ঞাসা করুন...",
+    clinicalContext: "ক্লিনিকাল প্রসঙ্গ",
+    activeAppointment: "সক্রিয় অ্যাপয়েন্টমেন্ট",
+    loading: "লোড হচ্ছে...",
+    noAppointmentsForPatient: "এই রোগীর জন্য কোনো অ্যাপয়েন্টমেন্ট নেই",
+    draftClinicalNotes: "ক্লিনিকাল নোটস খসড়া করুন",
+    analyzePatientRisks: "রোগীর ঝুঁকি বিশ্লেষণ",
+    suggestTreatmentPlan: "চিকিৎসা পরিকল্পনা প্রস্তাব করুন",
+    analyzePatientRisksPrompt: "সম্ভাব্য ঝুঁকি বা অ্যালার্জির জন্য এই রোগীর ইতিহাস বিশ্লেষণ করুন।",
+    suggestTreatmentPlanPrompt: "বর্তমান উপসর্গের ভিত্তিতে সর্বোত্তম চিকিৎসা অনুশীলন অনুযায়ী চিকিৎসা পরিকল্পনা প্রস্তাব করুন।",
+    decisionSupportOnly: "শুধু সিদ্ধান্ত সহায়তা:",
+    decisionSupportDisclaimer: "ক্লিনিকাল ব্যবহারের আগে এআই উত্তর লাইসেন্সপ্রাপ্ত বিশেষজ্ঞ দ্বারা পর্যালোচনা করতে হবে।",
+    saveToAppointment: "অ্যাপয়েন্টমেন্টে সংরক্ষণ করুন",
+    clinicalNotesGenerated: "ক্লিনিকাল নোটস নিচে তৈরি হয়েছে।",
+    clinicalNotesSaved: "ক্লিনিকাল নোটস অ্যাপয়েন্টমেন্টে সংরক্ষিত হয়েছে",
+    selectAppointmentFirst: "প্রথমে একটি অ্যাপয়েন্টমেন্ট নির্বাচন করুন।",
+    selectAppointmentFirstShort: "প্রথমে অ্যাপয়েন্টমেন্ট নির্বাচন করুন",
+    failedGetAiResponse: "এআই উত্তর পাওয়া যায়নি",
+    failedGenerateNotes: "নোটস তৈরি করা যায়নি",
+    failedSaveClinicalNotes: "ক্লিনিকাল নোটস সংরক্ষণ করা যায়নি",
+    clinicalSummaryLabel: "ক্লিনিকাল সারাংশ",
+    suggestedPrescriptionsLabel: "প্রস্তাবিত প্রেসক্রিপশন",
+    noteLabel: "নোট",
+    prescriptionLine: "{{index}}. {{medicine}} ({{dosage}}) - {{duration}}. {{instructions}}",
+    generalLabel: "সাধারণ",
+    aiDetected: "এআই শনাক্ত করেছে",
+    activeApplied: "সক্রিয় / আবেদন করা",
+    selectPlaceholder: "নির্বাচন করুন...",
+    incomePlaceholder: "যেমন 150000",
+    chronicConditionsPlaceholder: "যেমন ডায়াবেটিস, উচ্চ রক্তচাপ (কমা দিয়ে আলাদা করুন)",
+    failedToLoadSchemes: "স্কিম লোড করা যায়নি",
+    failedToUpdateDetails: "বিবরণ আপডেট করা যায়নি",
+    failedToApply: "আবেদন করা যায়নি",
+    aiRecommendationsUpdated: "এআই সুপারিশ আপডেট হয়েছে",
+    failedToRefreshAi: "এআই সুপারিশ রিফ্রেশ করা যায়নি",
+    failedToGetAiResponse: "এআই উত্তর পাওয়া যায়নি",
   }
 };
 
+const LIVE_CACHE_PREFIX = 'ui_translations_live_';
+const liveCache: Record<string, Record<string, string>> = {};
+const pendingKeys: Record<string, Set<string>> = {};
+
+function loadCache(lang: string) {
+  if (liveCache[lang]) return;
+  try {
+    if (typeof window === 'undefined') {
+      liveCache[lang] = {};
+      return;
+    }
+    const raw = window.localStorage.getItem(`${LIVE_CACHE_PREFIX}${lang}`);
+    liveCache[lang] = raw ? JSON.parse(raw) : {};
+  } catch {
+    liveCache[lang] = {};
+  }
+}
+
+function saveCache(lang: string) {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(`${LIVE_CACHE_PREFIX}${lang}`, JSON.stringify(liveCache[lang] || {}));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+async function translateMissingBatch(lang: string, keys: string[]) {
+  if (!keys.length) return;
+  const sourceTexts = keys.map((key) => translations.en?.[key] || key);
+  try {
+    const res = await api.post('/ai/translate-ui/batch', { language: lang, items: sourceTexts });
+    const translated = Array.isArray(res?.translations) ? res.translations : [];
+    translated.forEach((value, index) => {
+      const key = keys[index];
+      if (!key) return;
+      const text = String(value || '').trim();
+      if (text) {
+        liveCache[lang][key] = text;
+      }
+      if (pendingKeys[lang]) pendingKeys[lang].delete(key);
+    });
+    saveCache(lang);
+  } catch {
+    keys.forEach((key) => {
+      if (pendingKeys[lang]) pendingKeys[lang].delete(key);
+    });
+  }
+}
+
+async function translateSingle(lang: string, key: string) {
+  const sourceText = translations.en?.[key] || key;
+  try {
+    const res = await api.post('/ai/translate-ui', { language: lang, text: sourceText });
+    const translated = String(res?.translation || '').trim();
+    if (translated) {
+      liveCache[lang][key] = translated;
+      saveCache(lang);
+    }
+  } finally {
+    if (pendingKeys[lang]) pendingKeys[lang].delete(key);
+  }
+}
+
 export const useTranslation = (lang: string) => {
-  const t = (key: string) => {
-    return translations[lang]?.[key] || translations['en']?.[key] || key;
-  };
+  const [, forceRender] = useState(0);
+
+  useEffect(() => {
+    if (lang === 'en') return;
+    loadCache(lang);
+    const bundle = translations[lang] || {};
+    const missing = Object.keys(translations.en || {}).filter(
+      (key) => bundle[key] === undefined && !liveCache[lang][key]
+    );
+    if (!missing.length) return;
+
+    const chunkSize = 25;
+    const chunks: string[][] = [];
+    for (let i = 0; i < missing.length; i += chunkSize) {
+      chunks.push(missing.slice(i, i + chunkSize));
+    }
+
+    (async () => {
+      for (const chunk of chunks) {
+        chunk.forEach((key) => {
+          if (!pendingKeys[lang]) pendingKeys[lang] = new Set();
+          pendingKeys[lang].add(key);
+        });
+        await translateMissingBatch(lang, chunk);
+        forceRender((v) => v + 1);
+      }
+    })();
+  }, [lang]);
+
+  const t = useCallback(
+    (key: string) => {
+      const bundle = translations[lang] || {};
+      if (bundle[key] !== undefined) return bundle[key];
+      if (lang === 'en') return translations.en?.[key] || key;
+
+      loadCache(lang);
+      if (liveCache[lang][key]) return liveCache[lang][key];
+
+      if (!pendingKeys[lang]) pendingKeys[lang] = new Set();
+      if (!pendingKeys[lang].has(key)) {
+        pendingKeys[lang].add(key);
+        translateSingle(lang, key).then(() => forceRender((v) => v + 1));
+      }
+
+      return '';
+    },
+    [lang]
+  );
+
   return { t };
 };

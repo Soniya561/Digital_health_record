@@ -71,7 +71,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
       }
     } catch (error) {
       console.error('Failed to fetch schemes:', error);
-      toast.error('Failed to load schemes');
+      toast.error(t('failedToLoadSchemes'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
       setShowEligibilityForm(false);
       fetchData(); // Refresh schemes based on new data
     } catch (error) {
-      toast.error('Failed to update details');
+      toast.error(t('failedToUpdateDetails'));
     } finally {
       setSaving(false);
     }
@@ -108,18 +108,18 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
       toast.success(t('applySuccess'));
       fetchData(); // Refresh to show as applied
     } catch (error: any) {
-      toast.error(error.message || 'Failed to apply');
+      toast.error(language === 'en' ? (error.message || t('failedToApply')) : t('failedToApply'));
     }
   };
 
   const handleRefreshAi = async () => {
     try {
       setIsRefreshingAi(true);
-      const res = await api.get('/ai/schemes');
+      const res = await api.get('/ai/schemes', { params: { language } });
       setAiRecommendations(res.recommendations);
-      toast.success('AI recommendations updated');
+      toast.success(t('aiRecommendationsUpdated'));
     } catch (error) {
-      toast.error('Failed to refresh AI recommendations');
+      toast.error(t('failedToRefreshAi'));
     } finally {
       setIsRefreshingAi(false);
     }
@@ -136,11 +136,12 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
     try {
       const res = await api.post('/ai/schemes/chat', {
         message: userMsg,
-        history: chatHistory
+        history: chatHistory,
+        language
       });
       setChatHistory(prev => [...prev, { role: 'assistant', content: res.answer }]);
     } catch (error) {
-      toast.error('Failed to get AI response');
+      toast.error(t('failedToGetAiResponse'));
     } finally {
       setIsChatLoading(false);
     }
@@ -210,7 +211,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
               type="number"
               value={formData.income}
               onChange={(e) => setFormData({ ...formData, income: e.target.value })}
-              placeholder="e.g. 150000"
+              placeholder={t('incomePlaceholder')}
             />
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">{t('employmentType')}</label>
@@ -219,7 +220,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
                 value={formData.employmentType}
                 onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })}
               >
-                <option value="">Select...</option>
+                <option value="">{t('selectPlaceholder')}</option>
                 <option value="Migrant Worker">{t('migrantWorker')}</option>
                 <option value="Regular Worker">{t('regularWorker')}</option>
                 <option value="Unemployed">{t('unemployed')}</option>
@@ -251,7 +252,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
             label={t('chronicConditions')}
             value={formData.chronicConditions}
             onChange={(e) => setFormData({ ...formData, chronicConditions: e.target.value })}
-            placeholder="e.g. Diabetes, Hypertension (comma separated)"
+            placeholder={t('chronicConditionsPlaceholder')}
           />
           <div className="flex gap-3 mt-6">
             <Button variant="primary" onClick={handleUpdateEligibility} disabled={saving}>
@@ -287,7 +288,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
                     </div>
                     <Badge variant="success">
                       <CheckCircle className="w-3 h-3" />
-                      Active / Applied
+                      {t('activeApplied')}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">{result.scheme.description}</p>
@@ -320,7 +321,7 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
                         <h4 className="font-semibold text-foreground">{result.scheme.name}</h4>
                         <Badge variant="ai">
                           <Sparkles className="w-3 h-3" />
-                          AI Detected
+                          {t('aiDetected')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">{result.scheme.description}</p>

@@ -10,5 +10,7 @@ router.post('/schemes/chat', authenticate, aiController.chatAboutSchemes);
 router.get('/insights', authenticate, aiController.getHealthInsights);
 router.post('/clinical-notes', authenticate, aiController.generateClinicalNotes);
 router.post('/clinical-chat', authenticate, aiController.clinicalChat);
+router.post('/translate-ui', aiController.translateUi);
+router.post('/translate-ui/batch', aiController.translateUiBatch);
 
 module.exports = router;
