@@ -482,7 +482,7 @@ function UploadRecordDialog({ open, onOpenChange, onUpload, uploading, t, profil
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Blood Test Report"
+              placeholder={t('bloodTestReportPlaceholder')}
               className="bg-zinc-900 border-zinc-800"
               required
             />
@@ -496,12 +496,12 @@ function UploadRecordDialog({ open, onOpenChange, onUpload, uploading, t, profil
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full h-10 px-3 rounded-md bg-zinc-900 border border-zinc-800 text-sm"
               >
-                <option value="prescription">Prescription</option>
-                <option value="lab">Lab Report</option>
-                <option value="imaging">Imaging</option>
-                <option value="vaccination">Vaccination</option>
-                <option value="consultation">Consultation</option>
-                <option value="discharge">Discharge</option>
+                <option value="prescription">{t('Prescription')}</option>
+                <option value="lab">{t('Lab Report')}</option>
+                <option value="imaging">{t('Imaging')}</option>
+                <option value="vaccination">{t('Vaccination')}</option>
+                <option value="consultation">{t('Consultation')}</option>
+                <option value="discharge">{t('Discharge')}</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -510,7 +510,7 @@ function UploadRecordDialog({ open, onOpenChange, onUpload, uploading, t, profil
                 id="hospital"
                 value={hospital}
                 onChange={(e) => setHospital(e.target.value)}
-                placeholder="Hospital name"
+                placeholder={t('HospitalNamePlaceholder')}
                 className="bg-zinc-900 border-zinc-800"
               />
             </div>
@@ -521,25 +521,25 @@ function UploadRecordDialog({ open, onOpenChange, onUpload, uploading, t, profil
               id="doctor"
               value={doctor}
               onChange={(e) => setDoctor(e.target.value)}
-              placeholder="Doctor name"
+              placeholder={t('DoctorNamePlaceholder')}
               className="bg-zinc-900 border-zinc-800"
             />
           </div>
           <div className="space-y-2 p-3 bg-red-900/10 border border-red-900/20 rounded-lg">
             <Label htmlFor="emergencyContactNumber" className="text-red-400 font-bold flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              {t('Emergency Contact Number')} (Relative)
+              {t('Emergency Contact Number')} ({t('Relative')})
             </Label>
             <Input
               id="emergencyContactNumber"
               value={emergencyContactNumber}
               onChange={(e) => setEmergencyContactNumber(e.target.value)}
-              placeholder="Relative's Phone Number"
+              placeholder={t('RelativePhoneNumberPlaceholder')}
               className="bg-zinc-900 border-red-900/30 text-white"
               required
             />
             <p className="text-[10px] text-red-300/60">
-              * This number will be used by doctors to contact your relatives in case of emergency.
+              {t('emergencyRelativeNote')}
             </p>
           </div>
           <div className="space-y-2">
@@ -548,7 +548,7 @@ function UploadRecordDialog({ open, onOpenChange, onUpload, uploading, t, profil
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add some notes..."
+              placeholder={t('addSomeNotes')}
               className="bg-zinc-900 border-zinc-800 min-h-[80px]"
             />
           </div>

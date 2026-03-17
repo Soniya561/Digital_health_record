@@ -139,7 +139,7 @@ export function HealthQRTab({ user }: { user: any }) {
                 <p className="font-medium">{user?.name || '...'}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Blockchain ID</p>
+                <p className="text-muted-foreground">{t('blockchainId')}</p>
                 <p className="font-medium truncate text-xs" title={user?.blockchainId}>
                   {user?.blockchainId ? `${user.blockchainId.substring(0, 10)}...${user.blockchainId.substring(user.blockchainId.length - 4)}` : '...'}
                 </p>
