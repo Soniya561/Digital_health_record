@@ -34,8 +34,8 @@ export function UploadRecordsTab({ patient }: UploadRecordsTabProps) {
   const [recordType, setRecordType] = useState('prescription');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [hospital, setHospital] = useState('Medical College Hospital, Trivandrum');
-  const [doctor, setDoctor] = useState('Dr. Anjali Menon');
+  const [hospital, setHospital] = useState(t('defaultHospital'));
+  const [doctor, setDoctor] = useState(t('defaultDoctor'));
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -80,13 +80,13 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
   const setPatientFromPublicProfile = async (identifier: string) => {
     const response = await api.get(`/patients/public-profile/${encodeURIComponent(identifier)}`);
     const patient = response?.patient;
-    if (!patient) throw new Error('Patient not found');
+    if (!patient) throw new Error(t('patientNotFound'));
 
     onPatientSelected?.({
       _id: patient._id,
       id: patient._id || patient.blockchainId,
       blockchainId: patient.blockchainId,
-      name: patient.name || 'Unknown Patient',
+      name: patient.name || t('unknownPatient'),
       age: patient.age,
       gender: patient.gender,
       bloodGroup: patient.bloodGroup,
@@ -99,14 +99,14 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
 
   const setPatientFromQrToken = async (token: string) => {
     const response = await api.get(`/records/qr/${encodeURIComponent(token)}`);
-    if (!response) throw new Error('Invalid QR data');
+    if (!response) throw new Error(t('invalidQrData'));
 
     if (response.type === 'patient' && response.patient) {
       const patient = response.patient;
       onPatientSelected?.({
         _id: patient._id,
         id: patient._id || patient.abhaId,
-        name: patient.name || 'Unknown Patient',
+        name: patient.name || t('unknownPatient'),
         abhaId: patient.abhaId,
         blockchainId: patient.blockchainId,
         age: patient.age,
@@ -123,7 +123,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       onPatientSelected?.({
         _id: record.patient,
         id: record.patient,
-        name: 'Scanned Patient',
+        name: t('scannedPatient'),
         allergies: [],
         chronicConditions: [],
         lastVisit: record.createdAt,
@@ -131,13 +131,13 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       return;
     }
 
-    throw new Error('Unsupported QR payload');
+    throw new Error(t('unsupportedQrPayload'));
   };
 
   const resolveQrOrId = async (value: string) => {
     const parsed = parseScannedValue(value);
     if (!parsed.value) {
-      throw new Error('Empty QR value');
+      throw new Error(t('emptyQrValue'));
     }
 
     if (parsed.type === 'publicProfile') {
@@ -157,7 +157,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       await resolveQrOrId(value);
       stopScanning();
     } catch (err: any) {
-      setScanError(err?.message || 'Failed to read patient from QR');
+      setScanError(err?.message || t('failedToReadPatientFromQr'));
     } finally {
       setIsResolving(false);
       processingRef.current = false;
@@ -173,12 +173,12 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setScanError('Camera access is not supported by your browser or requires a secure (HTTPS) connection');
+      setScanError(t('cameraAccessNotSupported'));
       return;
     }
 
     if (!(window as any).BarcodeDetector) {
-      setScanError('Camera QR scan is not supported in this browser. Paste QR link/token below.');
+      setScanError(t('qrScanNotSupported'));
       return;
     }
 
@@ -222,7 +222,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       scanFrameRef.current = requestAnimationFrame(scanFrame);
     } catch (err: any) {
       stopScanning();
-      setScanError(err?.message || 'Unable to access camera');
+      setScanError(err?.message || t('unableToAccessCamera'));
     }
   };
 
@@ -235,10 +235,10 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       {/* Scanner Card */}
       <Card className="text-center">
         <h2 className="text-2xl font-bold text-foreground mb-4">
-          Scan Patient QR Code
+          {t('scanPatientQRTitle')}
         </h2>
         <p className="text-sm text-muted-foreground mb-6">
-          Scan the patient's health QR code for instant access to their medical records
+          {t('scanPatientQRDesc')}
         </p>
 
         {!secureInfo.isSecureContextOk && (
@@ -294,21 +294,21 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
                 disabled={isScanning || isResolving}
                 icon={isResolving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
               >
-                {isScanning ? 'Scanning...' : 'Open Camera to Scan'}
+                {isScanning ? t('scanning') : t('openCamera')}
               </Button>
               {isScanning && (
                 <Button variant="outline" size="lg" onClick={stopScanning}>
-                  Stop
+                  {t('stop')}
                 </Button>
               )}
             </div>
 
             <div className="space-y-2 max-w-lg mx-auto">
-              <p className="text-xs text-muted-foreground">Or paste QR link / token / blockchain ID</p>
+              <p className="text-xs text-muted-foreground">{t('pasteQrPrompt')}</p>
               <div className="flex gap-2">
                 <Input
                   type="text"
-                  placeholder="Paste QR value"
+                  placeholder={t('pasteQrPlaceholder')}
                   value={manualInput}
                   onChange={(e) => setManualInput(e.target.value)}
                 />
@@ -317,7 +317,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
                   onClick={handleManualResolve}
                   disabled={!manualInput.trim() || isResolving}
                 >
-                  {isResolving ? 'Reading...' : 'Use'}
+                  {isResolving ? t('reading') : t('useAction')}
                 </Button>
               </div>
             </div>
@@ -332,9 +332,9 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
             animate={{ opacity: 1, scale: 1 }}
           >
             <div className="text-green-600 text-6xl mb-4">✓</div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Patient Identified</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('patientIdentified')}</h3>
             <Button variant="outline" onClick={() => onPatientSelected && onPatientSelected(null)}>
-              Scan Another Patient
+              {t('scanAnotherPatient')}
             </Button>
           </motion.div>
         )}
@@ -351,18 +351,18 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
           <Card>
             <div className="flex items-start gap-4">
               <div className="w-20 h-20 bg-gradient-to-br from-[#0b6e4f] to-[#2196F3] rounded-xl flex items-center justify-center text-white text-3xl font-bold">
-                {(selectedPatient.name || 'P').charAt(0)}
+                {(selectedPatient.name || t('patient')[0] || 'P').charAt(0)}
               </div>
               <div className="flex-1">
                 <h3 className="text-2xl font-bold text-foreground mb-1">{selectedPatient.name}</h3>
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-3">
-                  <span>👤 {selectedPatient.age} years, {selectedPatient.gender}</span>
+                  <span>👤 {selectedPatient.age} {t('years')}, {selectedPatient.gender}</span>
                   <span>🆔 {selectedPatient.id}</span>
                   <span className="text-red-600 font-semibold">🩸 {selectedPatient.bloodGroup}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="info">Active Patient</Badge>
-                  <Badge variant="default">Last visit: {selectedPatient.lastVisit}</Badge>
+                  <Badge variant="info">{t('activePatient')}</Badge>
+                  <Badge variant="default">{t('lastVisit')}: {selectedPatient.lastVisit}</Badge>
                 </div>
               </div>
             </div>
@@ -373,9 +373,9 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
               <div>
-                <h3 className="font-bold text-red-800 mb-1">⚠️ Critical Alerts</h3>
+                <h3 className="font-bold text-red-800 mb-1">⚠️ {t('criticalAlerts')}</h3>
                 <p className="text-sm text-red-700">
-                  Review carefully before prescribing medication
+                  {t('reviewCarefully')}
                 </p>
               </div>
             </div>
@@ -384,24 +384,24 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
               <div className="p-3 bg-zinc-800/50 backdrop-blur-sm rounded-lg border border-zinc-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-red-800">Drug Allergies</p>
+                    <p className="font-semibold text-red-800">{t('drugAllergies')}</p>
                     <p className="text-sm text-red-600">
                       {selectedPatient.allergies.join(', ')}
                     </p>
                   </div>
-                  <Badge variant="danger">High Risk</Badge>
+                  <Badge variant="danger">{t('highRisk')}</Badge>
                 </div>
               </div>
 
               <div className="p-3 bg-zinc-800/50 backdrop-blur-sm rounded-lg border border-zinc-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-orange-800">Chronic Conditions</p>
+                    <p className="font-semibold text-orange-800">{t('chronicConditions')}</p>
                     <p className="text-sm text-orange-600">
                       {selectedPatient.chronicConditions.join(', ')}
                     </p>
                   </div>
-                  <Badge variant="warning">Monitor</Badge>
+                  <Badge variant="warning">{t('monitor')}</Badge>
                 </div>
               </div>
             </div>
@@ -415,7 +415,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
                   <Heart className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Visits</p>
+                  <p className="text-sm text-muted-foreground">{t('totalVisits')}</p>
                   <p className="text-2xl font-bold text-foreground">12</p>
                 </div>
               </div>
@@ -427,7 +427,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
                   <Activity className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Medical Records</p>
+                  <p className="text-sm text-muted-foreground">{t('medicalRecords')}</p>
                   <p className="text-2xl font-bold text-foreground">24</p>
                 </div>
               </div>
@@ -441,14 +441,14 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
               fullWidth
               onClick={() => onNavigate && onNavigate('history')}
             >
-              View Full History
+              {t('viewFullHistory')}
             </Button>
             <Button 
               variant="secondary" 
               fullWidth
               onClick={() => onNavigate && onNavigate('upload')}
             >
-              Start Consultation
+              {t('startConsultation')}
             </Button>
           </div>
         </motion.div>
@@ -460,9 +460,9 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
           <div className="flex items-start gap-3">
             <div className="text-2xl">💡</div>
             <div>
-              <h3 className="font-semibold text-foreground mb-1">Quick & Secure Access</h3>
+              <h3 className="font-semibold text-foreground mb-1">{t('quickSecureAccess')}</h3>
               <p className="text-sm text-muted-foreground">
-                The QR code provides instant access to patient records while maintaining privacy and security. All accesses are logged and require patient consent.
+                {t('qrPrivacyDesc')}
               </p>
             </div>
           </div>

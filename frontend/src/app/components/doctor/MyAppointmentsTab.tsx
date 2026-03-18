@@ -5,6 +5,8 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { api } from '@/app/utils/api';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { useTranslation } from '@/app/utils/translations';
 
 type Appointment = {
   _id: string;
@@ -20,6 +22,8 @@ type Appointment = {
 };
 
 export function MyAppointmentsTab() {
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,7 +39,7 @@ export function MyAppointmentsTab() {
       const res = await api.get('/appointments/doctor');
       setAppointments(Array.isArray(res?.appointments) ? res.appointments : []);
     } catch (err: any) {
-      setError(err.message || 'Failed to load appointments');
+      setError(err.message || t('failedToLoadAppointments'));
     } finally {
       setLoading(false);
     }
@@ -60,19 +64,19 @@ export function MyAppointmentsTab() {
         <Card hover>
           <div className="text-center">
             <p className="text-3xl font-bold text-[#0b6e4f]">{todayAppointments.length}</p>
-            <p className="text-sm text-muted-foreground">Total Today</p>
+            <p className="text-sm text-muted-foreground">{t('totalToday')}</p>
           </div>
         </Card>
         <Card hover>
           <div className="text-center">
             <p className="text-3xl font-bold text-green-600">{completedToday}</p>
-            <p className="text-sm text-muted-foreground">Completed</p>
+            <p className="text-sm text-muted-foreground">{t('completed')}</p>
           </div>
         </Card>
         <Card hover>
           <div className="text-center">
             <p className="text-3xl font-bold text-orange-600">{pendingToday}</p>
-            <p className="text-sm text-muted-foreground">Pending</p>
+            <p className="text-sm text-muted-foreground">{t('pending')}</p>
           </div>
         </Card>
       </div>
@@ -80,23 +84,23 @@ export function MyAppointmentsTab() {
       <Card>
         <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5" />
-          My Appointments
+          {t('myAppointments')}
         </h2>
 
         {loading ? (
           <div className="py-8 text-center text-muted-foreground flex items-center justify-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Loading appointments...
+            {t('loadingAppointments')}
           </div>
         ) : error ? (
           <div className="py-8 text-center">
             <p className="text-sm text-red-500 mb-3">{error}</p>
             <Button variant="outline" onClick={fetchAppointments}>
-              Retry
+              {t('retry')}
             </Button>
           </div>
         ) : appointments.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">No appointments assigned yet.</p>
+          <p className="py-8 text-center text-muted-foreground">{t('noAppointmentsAssigned')}</p>
         ) : (
           <div className="space-y-3">
             {appointments.map((appointment, index) => (
@@ -115,7 +119,7 @@ export function MyAppointmentsTab() {
                     <div>
                       <p className="font-semibold text-lg text-foreground">{appointment.time}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(appointment.date).toLocaleDateString('en-IN')} | {appointment.specialty || 'General'}
+                        {new Date(appointment.date).toLocaleDateString(language === 'en' ? 'en-IN' : language)} | {appointment.specialty ? t(appointment.specialty) : t('generalSpecialty')}
                       </p>
                     </div>
                   </div>
@@ -128,15 +132,15 @@ export function MyAppointmentsTab() {
                         : 'info'
                     }
                   >
-                    {appointment.status}
+                    {t(appointment.status) || appointment.status}
                   </Badge>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium text-foreground">{appointment.patient?.name || 'Unknown Patient'}</p>
-                    <p className="text-xs text-muted-foreground">{appointment.patient?.abhaId || 'No ABHA ID'}</p>
+                    <p className="font-medium text-foreground">{appointment.patient?.name || t('unknownPatient')}</p>
+                    <p className="text-xs text-muted-foreground">{appointment.patient?.abhaId || t('noAbhaId')}</p>
                   </div>
                 </div>
               </motion.div>

@@ -57,17 +57,17 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
       const response = await api.get(endpoint);
       setRecords(response.records);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch records');
+      setError(err.message || t('failedToFetchRecords'));
     } finally {
       setLoading(false);
     }
   };
 
   const filters = [
-    { id: 'all', name: 'All Records', count: records.length },
-    { id: 'prescription', name: 'Prescriptions', count: records.filter(r => r.category === 'prescription').length },
-    { id: 'lab', name: 'Lab Reports', count: records.filter(r => r.category === 'lab').length },
-    { id: 'imaging', name: 'Imaging', count: records.filter(r => ['xray', 'imaging', 'mri'].includes(r.category)).length },
+    { id: 'all', name: t('allRecords'), count: records.length },
+    { id: 'prescription', name: t('prescriptions'), count: records.filter(r => r.category === 'prescription').length },
+    { id: 'lab', name: t('labReports'), count: records.filter(r => r.category === 'lab').length },
+    { id: 'imaging', name: t('imaging'), count: records.filter(r => ['xray', 'imaging', 'mri'].includes(r.category)).length },
   ];
 
   const filteredRecords = records.filter(r => {
@@ -127,12 +127,12 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground">
-              Patient: {patient?.name || 'Selected Patient'}
+              {t('patientLabel')}: {patient?.name || t('selectedPatient')}
             </h2>
-            <p className="text-sm text-muted-foreground">ID: {patientIdentifier || '-'}</p>
+            <p className="text-sm text-muted-foreground">{t('idLabel')}: {patientIdentifier || '-'}</p>
           </div>
           <Badge variant={patientIdentifier ? 'success' : 'warning'}>
-            {patientIdentifier ? 'Active' : 'Select patient from scan tab'}
+            {patientIdentifier ? t('activeStatus') : t('selectPatientFromScanTab')}
           </Badge>
         </div>
 
@@ -140,7 +140,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
         <div className="space-y-3">
           <Input
             type="text"
-            placeholder="Search medical records..."
+            placeholder={t('searchMedicalRecordsPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             icon={<Search className="w-5 h-5" />}
@@ -169,9 +169,9 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
         <div className="flex items-start gap-3">
           <div className="text-2xl">🌍</div>
           <div>
-            <h3 className="font-semibold text-yellow-900 mb-1">Cross-State Records Available</h3>
+            <h3 className="font-semibold text-yellow-900 mb-1">{t('crossStateRecords')}</h3>
             <p className="text-sm text-yellow-800/80">
-              This patient's records from other states are accessible through the unified health network.
+              {t('crossStateDesc')}
             </p>
           </div>
         </div>
@@ -181,24 +181,24 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
       <div className="space-y-4">
         <h3 className="font-semibold text-foreground flex items-center gap-2">
           <Calendar className="w-5 h-5" />
-          Medical History Timeline
+          {t('medicalHistoryTimeline')}
         </h3>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-[#0b6e4f] animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading medical records...</p>
+            <p className="text-muted-foreground">{t('loadingMedicalRecords')}</p>
           </div>
         ) : error ? (
           <div className="p-6 text-center bg-red-900/20 border border-red-900/50 rounded-xl">
             <p className="text-red-400 mb-4">{error}</p>
-            <Button onClick={fetchRecords} variant="outline">Retry</Button>
+            <Button onClick={fetchRecords} variant="outline">{t('retry')}</Button>
           </div>
         ) : filteredRecords.length === 0 ? (
           <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-zinc-800">
             <FileText className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground">No records found</h3>
-            <p className="text-muted-foreground mt-1">Search or filter criteria matched no records.</p>
+            <h3 className="text-lg font-medium text-foreground">{t('noRecordsFound')}</h3>
+            <p className="text-muted-foreground mt-1">{t('noRecordsDesc')}</p>
           </div>
         ) : (
           filteredRecords.map((record, index) => (
@@ -233,14 +233,14 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
                     </div>
 
                     <div className="text-sm text-muted-foreground mb-3">
-                      <p>🆔 {patientIdentifier || 'Unknown'}</p>
-                      <p>🏥 {record.hospital || 'Not specified'}</p>
-                      <p>👨‍⚕️ {record.doctor || 'Not specified'}</p>
+                      <p>🆔 {patientIdentifier || t('unknownId')}</p>
+                      <p>🏥 {record.hospital || t('notSpecified')}</p>
+                      <p>👨‍⚕️ {record.doctor || t('notSpecified')}</p>
                     </div>
 
                     {record.description && (
                       <div className="p-3 bg-accent rounded-lg mb-3">
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Details:</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">{t('detailsLabel')}</p>
                         <p className="text-sm text-foreground">{t(record.description)}</p>
                       </div>
                     )}
@@ -253,7 +253,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
                         icon={<Eye className="w-4 h-4" />}
                         onClick={() => setSelectedRecord(record)}
                       >
-                        View Full
+                        {t('viewFull')}
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -261,7 +261,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
                         icon={<Download className="w-4 h-4" />}
                         onClick={() => handleDownload(record._id, record.title)}
                       >
-                        Download
+                        {t('download')}
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -269,7 +269,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
                         icon={<Share2 className="w-4 h-4" />}
                         onClick={() => handleShare(record)}
                       >
-                        Share
+                        {t('share')}
                       </Button>
                     </div>
                   </div>
@@ -292,22 +292,22 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
 
       {/* Patient Summary */}
       <Card className="bg-[#e8f5e9] border-[#0b6e4f]">
-        <h3 className="font-semibold text-foreground mb-3">Patient Summary</h3>
+        <h3 className="font-semibold text-foreground mb-3">{t('patientSummary')}</h3>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-muted-foreground">Total Visits</p>
+            <p className="text-muted-foreground">{t('totalVisits')}</p>
             <p className="text-lg font-bold text-foreground">12</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Total Records</p>
+            <p className="text-muted-foreground">{t('totalRecords')}</p>
             <p className="text-lg font-bold text-foreground">24</p>
           </div>
           <div>
-            <p className="text-muted-foreground">First Visit</p>
+            <p className="text-muted-foreground">{t('firstVisit')}</p>
             <p className="text-lg font-bold text-foreground">Jan 2024</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Last Visit</p>
+            <p className="text-muted-foreground">{t('lastVisit')}</p>
             <p className="text-lg font-bold text-foreground">Jan 2025</p>
           </div>
         </div>
@@ -330,33 +330,33 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, onShare, 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl bg-zinc-950 border-zinc-800 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">{t(record.title)}</DialogTitle>
-          <DialogDescription className="text-zinc-400">
-            {new Date(record.createdAt).toLocaleDateString(language === 'en' ? 'en-IN' : language, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })} • {t(record.category)?.toUpperCase() || 'RECORD'}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-bold">{t(record.title)}</DialogTitle>
+        <DialogDescription className="text-zinc-400">
+          {new Date(record.createdAt).toLocaleDateString(language === 'en' ? 'en-IN' : language, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })} &bull; {t(record.category)?.toUpperCase() || t('recordLabel')}
+        </DialogDescription>
+      </DialogHeader>
 
         <div className="grid gap-6 py-4 text-white">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-xs text-zinc-500 uppercase font-semibold">{t('Hospital')}</p>
-              <p className="text-sm">{record.hospital || 'Not specified'}</p>
+              <p className="text-sm">{record.hospital || t('notSpecified')}</p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-zinc-500 uppercase font-semibold">{t('Doctor')}</p>
-              <p className="text-sm">{record.doctor || 'Not specified'}</p>
+              <p className="text-sm">{record.doctor || t('notSpecified')}</p>
             </div>
           </div>
 
           <div className="space-y-2">
             <p className="text-xs text-zinc-500 uppercase font-semibold">{t('Description')}</p>
             <p className="text-sm text-zinc-300 bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
-              {record.description ? t(record.description) : 'No additional description provided for this record.'}
+              {record.description ? t(record.description) : t('noAdditionalDescription')}
             </p>
           </div>
 
@@ -367,7 +367,7 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, onShare, 
                 {record.fileUrl.endsWith('.pdf') ? (
                   <div className="text-center p-4">
                     <FileText className="w-12 h-12 text-zinc-700 mx-auto mb-2" />
-                    <p className="text-xs text-zinc-500">PDF Document - Use download to view full content</p>
+                    <p className="text-xs text-zinc-500">{t('pdfPreviewNote')}</p>
                   </div>
                 ) : (
                   <img 
@@ -392,7 +392,7 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, onShare, 
               onClick={() => onDownload(record._id, record.title)}
             >
               <Download className="w-4 h-4 mr-2" />
-              Download
+              {t('download')}
             </Button>
             <Button
               variant="outline"
@@ -400,11 +400,11 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, onShare, 
               onClick={() => onShare(record)}
             >
               <Share2 className="w-4 h-4 mr-2" />
-              Share
+              {t('share')}
             </Button>
           </div>
           <Button onClick={() => onOpenChange(false)} className="bg-[#0b6e4f] hover:bg-[#0b6e4f]/90 text-white">
-            Close
+            {t('close')}
           </Button>
         </DialogFooter>
       </DialogContent>

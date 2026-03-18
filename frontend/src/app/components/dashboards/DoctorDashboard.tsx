@@ -40,7 +40,7 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
                 {user?.photoUrl ? (
                   <img
                     src={`${api.API_URL.replace('/api', '')}/uploads/${user.photoUrl}`}
-                    alt={user?.name || 'Doctor'}
+                    alt={user?.name || t('doctorPortal')}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -49,7 +49,7 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">{t('doctorPortal')}</h1>
-                <p className="text-sm opacity-90">{t('welcomeUser')}, {user?.name || 'Doctor'}</p>
+                <p className="text-sm opacity-90">{t('welcomeUser')}, {user?.name || t('doctorPortal')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -123,7 +123,7 @@ export function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
       {/* Footer */}
       <div className="bg-zinc-900/80 backdrop-blur-xl border-t border-zinc-800 mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-400">
-          <p>{t('keralaHealthPortal')} • {t('healthcareProfessionalInterface')}</p>
+          <p>{t('keralaHealthPortal')} &bull; {t('healthcareProfessionalInterface')}</p>
         </div>
       </div>
 
