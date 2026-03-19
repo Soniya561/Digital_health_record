@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Shield, Activity, Database, Lock, Eye, CheckCircle, RefreshCw, TrendingUp, ServerCrash, MapPin } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { api } from '@/app/utils/api';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { useTranslation } from '@/app/utils/translations';
 
 type MonitoringResponse = {
   summary: {
@@ -29,21 +31,23 @@ function formatNumber(n: number) {
   return n.toLocaleString('en-IN');
 }
 
-function formatAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.round(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} h ago`;
-  const days = Math.round(hours / 24);
-  return `${days} d ago`;
-}
-
 export function SystemMonitoringTab() {
   const [data, setData] = useState<MonitoringResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
+
+  const formatAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.round(diff / 60000);
+    if (mins < 1) return t('justNow');
+    if (mins < 60) return `${mins} ${t('minutesAgo')}`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours} ${t('hoursAgo')}`;
+    const days = Math.round(hours / 24);
+    return `${days} ${t('daysAgo')}`;
+  };
 
   const load = async () => {
     try {
@@ -52,7 +56,7 @@ export function SystemMonitoringTab() {
       const res = await api.get('/analytics/monitoring');
       setData(res);
     } catch (err: any) {
-      setError(err.message || 'Failed to load monitoring data');
+      setError(err.message || t('failedLoadMonitoring'));
     } finally {
       setLoading(false);
     }
@@ -67,7 +71,7 @@ export function SystemMonitoringTab() {
       <Card className="p-6">
         <div className="flex items-center gap-2 text-muted-foreground">
           <RefreshCw className="w-5 h-5 animate-spin" />
-          <span>Loading system monitoring from live records…</span>
+          <span>{t('loadingMonitoring')}</span>
         </div>
       </Card>
     );
@@ -78,11 +82,11 @@ export function SystemMonitoringTab() {
       <Card className="p-6 bg-red-50 border-red-200">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-red-700 font-semibold">Unable to load monitoring data</p>
+            <p className="text-red-700 font-semibold">{t('unableLoadMonitoring')}</p>
             <p className="text-sm text-red-600">{error}</p>
           </div>
           <Button variant="outline" icon={<RefreshCw className="w-4 h-4" />} onClick={load}>
-            Retry
+            {t('retry')}
           </Button>
         </div>
       </Card>
@@ -97,11 +101,11 @@ export function SystemMonitoringTab() {
       <Card>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">System Monitoring</h2>
-            <p className="text-sm text-muted-foreground">Live health, performance, and audit signals derived from records</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">{t('systemMonitoring')}</h2>
+            <p className="text-sm text-muted-foreground">{t('systemMonitoringDesc')}</p>
           </div>
           <Button variant="outline" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={load}>
-            Refresh
+            {t('refreshData')}
           </Button>
         </div>
       </Card>
@@ -110,31 +114,31 @@ export function SystemMonitoringTab() {
       <Card>
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <Activity className="w-5 h-5 text-green-600" />
-          System Health (derived)
+          {t('systemHealthDerived')}
         </h3>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 bg-accent rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Uptime (heuristic)</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('uptimeHeuristic')}</p>
             <p className="text-2xl font-bold text-green-600">{summary.uptimePercent}%</p>
-            <Badge variant="success" className="mt-2">calculated</Badge>
+            <Badge variant="success" className="mt-2">{t('calculated')}</Badge>
           </div>
           <div className="p-4 bg-accent rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">API Latency (derived)</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('apiLatencyDerived')}</p>
             <p className="text-2xl font-bold text-blue-600">{summary.apiLatencyMs} ms</p>
-            <Badge variant="info" className="mt-2">load proxy</Badge>
+            <Badge variant="info" className="mt-2">{t('loadProxy')}</Badge>
           </div>
           <div className="p-4 bg-accent rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Storage Utilization</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('storageUtilization')}</p>
             <p className="text-2xl font-bold text-orange-600">{summary.storageUsagePercent}%</p>
             <Badge variant={summary.storageUsagePercent > 85 ? 'warning' : 'success'} className="mt-2">
-              {summary.storageUsagePercent > 85 ? 'watch' : 'ok'}
+              {summary.storageUsagePercent > 85 ? t('watch') : t('ok')}
             </Badge>
           </div>
           <div className="p-4 bg-accent rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Uploads (24h)</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('uploads24h')}</p>
             <p className="text-2xl font-bold text-purple-600">{formatNumber(summary.uploads24h)}</p>
-            <Badge variant="info" className="mt-2">real</Badge>
+            <Badge variant="info" className="mt-2">{t('realValue')}</Badge>
           </div>
         </div>
       </Card>
@@ -143,7 +147,7 @@ export function SystemMonitoringTab() {
       <Card>
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-blue-600" />
-          Upload trend (last 7 days)
+          {t('uploadTrend7d')}
         </h3>
         <div className="grid grid-cols-7 gap-2">
           {uploadsByDay.map((d) => (
@@ -156,7 +160,7 @@ export function SystemMonitoringTab() {
                 <div className="bg-[#ff9800]" style={{ width: `${(d.admin / Math.max(1, d.total)) * 100}%` }} />
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">
-                P {d.patient} • D {d.doctor} • A {d.admin}
+                P {d.patient} â€¢ D {d.doctor} â€¢ A {d.admin}
               </p>
             </div>
           ))}
@@ -167,7 +171,7 @@ export function SystemMonitoringTab() {
       <Card>
         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <Database className="w-5 h-5 text-orange-600" />
-          Latest record activity
+          {t('latestRecordActivity')}
         </h3>
         <div className="space-y-2">
           {latestUploads.map((u, idx) => (
@@ -181,14 +185,14 @@ export function SystemMonitoringTab() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-sm text-foreground">{u.title}</p>
-                  <p className="text-xs text-muted-foreground">{u.category} • {u.hospital || 'Unknown hospital'}</p>
-                  <p className="text-xs text-muted-foreground">By {u.role}{u.doctor ? ` • Dr ${u.doctor}` : ''}</p>
+                  <p className="text-xs text-muted-foreground">{u.category} {'•'} {u.hospital || t('unknownHospital')}</p>
+                  <p className="text-xs text-muted-foreground">{t('byLabel')} {u.role}{u.doctor ? ` ${'•'} ${t('doctorPrefix')} ${u.doctor}` : ''}</p>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">{formatAgo(u.createdAt)}</span>
               </div>
             </motion.div>
           ))}
-          {latestUploads.length === 0 && <p className="text-sm text-muted-foreground">No uploads yet.</p>}
+          {latestUploads.length === 0 && <p className="text-sm text-muted-foreground">{t('noUploadsYet')}</p>}
         </div>
       </Card>
 
@@ -196,26 +200,26 @@ export function SystemMonitoringTab() {
       <Card>
         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <Lock className="w-5 h-5 text-purple-600" />
-          Consent management activity
+          {t('consentActivity')}
         </h3>
         <div className="flex gap-3 mb-3">
-          <Badge variant="success">Granted: {consent.stats.granted}</Badge>
-          <Badge variant={consent.stats.revoked > 0 ? 'warning' : 'success'}>Revoked: {consent.stats.revoked}</Badge>
+          <Badge variant="success">{t('grantedLabel')}: {consent.stats.granted}</Badge>
+          <Badge variant={consent.stats.revoked > 0 ? 'warning' : 'success'}>{t('revokedLabel')}: {consent.stats.revoked}</Badge>
         </div>
         <div className="space-y-2">
           {consent.recent.map((c) => (
             <div key={c.id} className="p-3 bg-muted rounded-lg flex items-center justify-between">
               <div>
                 <p className="font-semibold text-sm text-foreground">
-                  {c.granted ? 'Granted' : 'Revoked'} ({c.granteeType})
+                  {c.granted ? t('grantedLabel') : t('revokedLabel')} ({c.granteeType})
                 </p>
-                <p className="text-xs text-muted-foreground">{c.purpose || 'No purpose provided'}</p>
+                <p className="text-xs text-muted-foreground">{c.purpose || t('noPurposeProvided')}</p>
               </div>
-              <Badge variant={c.granted ? 'success' : 'danger'}>{c.granted ? 'granted' : 'revoked'}</Badge>
+              <Badge variant={c.granted ? 'success' : 'danger'}>{c.granted ? t('grantedLabel') : t('revokedLabel')}</Badge>
               <span className="text-xs text-muted-foreground">{formatAgo(c.updatedAt)}</span>
             </div>
           ))}
-          {consent.recent.length === 0 && <p className="text-sm text-muted-foreground">No consent actions yet.</p>}
+          {consent.recent.length === 0 && <p className="text-sm text-muted-foreground">{t('noConsentActionsYet')}</p>}
         </div>
       </Card>
 
@@ -223,19 +227,19 @@ export function SystemMonitoringTab() {
       <Card>
         <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <MapPin className="w-5 h-5 text-red-600" />
-          High-volume facilities
+          {t('highVolumeFacilities')}
         </h3>
         <div className="grid md:grid-cols-2 gap-3">
           {hotspots.map((h) => (
             <div key={h.hospital} className="p-3 bg-muted rounded-lg flex items-center justify-between">
               <div>
-                <p className="font-semibold text-sm text-foreground">{h.hospital || 'Unnamed facility'}</p>
-                <p className="text-xs text-muted-foreground">{formatNumber(h.count)} records</p>
+                <p className="font-semibold text-sm text-foreground">{h.hospital || t('unnamedFacility')}</p>
+                <p className="text-xs text-muted-foreground">{formatNumber(h.count)} {t('recordsLabel')}</p>
               </div>
-              <Badge variant="warning">monitor</Badge>
+              <Badge variant="warning">{t('monitorTag')}</Badge>
             </div>
           ))}
-          {hotspots.length === 0 && <p className="text-sm text-muted-foreground">No facilities have uploaded yet.</p>}
+          {hotspots.length === 0 && <p className="text-sm text-muted-foreground">{t('noFacilitiesUploadedYet')}</p>}
         </div>
       </Card>
 
@@ -246,23 +250,23 @@ export function SystemMonitoringTab() {
             <Shield className="w-6 h-6 text-green-600" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground mb-2">Data Security Checks</h3>
+            <h3 className="font-semibold text-foreground mb-2">{t('dataSecurityChecks')}</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm">Token auth enforced (API)</span>
+                <span className="text-sm">{t('tokenAuthEnforced')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm">Consent required for access</span>
+                <span className="text-sm">{t('consentRequiredAccess')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm">Audit trail persisted</span>
+                <span className="text-sm">{t('auditTrailPersisted')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm">Backups recommended</span>
+                <span className="text-sm">{t('backupsRecommended')}</span>
               </div>
             </div>
           </div>
@@ -274,9 +278,9 @@ export function SystemMonitoringTab() {
         <div className="flex items-start gap-3">
           <ServerCrash className="w-6 h-6 text-red-600" />
           <div>
-            <h3 className="font-semibold text-foreground mb-1">Availability is data-derived</h3>
+            <h3 className="font-semibold text-foreground mb-1">{t('availabilityDataDerived')}</h3>
             <p className="text-sm text-muted-foreground">
-              Metrics are computed from record and consent activity. Add real infra telemetry to replace these heuristics when available.
+              {t('availabilityDesc')}
             </p>
           </div>
         </div>
@@ -284,3 +288,15 @@ export function SystemMonitoringTab() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+

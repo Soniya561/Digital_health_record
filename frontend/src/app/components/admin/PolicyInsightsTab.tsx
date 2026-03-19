@@ -5,6 +5,11 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { api } from '@/app/utils/api';
+import { useTranslation } from '@/app/utils/translations';
+
+interface PolicyInsightsTabProps {
+  language?: string;
+}
 
 type PolicyInsightsResponse = {
   summary: {
@@ -28,7 +33,8 @@ function formatNumber(value: number) {
   return value.toLocaleString('en-IN');
 }
 
-export function PolicyInsightsTab() {
+export function PolicyInsightsTab({ language = 'en' }: PolicyInsightsTabProps) {
+  const { t } = useTranslation(language);
   const [data, setData] = useState<PolicyInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +46,7 @@ export function PolicyInsightsTab() {
       const res = await api.get('/analytics/policy');
       setData(res);
     } catch (err: any) {
-      setError(err.message || 'Failed to load policy insights');
+      setError(err.message || t('unableToLoadPolicyInsights'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +66,7 @@ export function PolicyInsightsTab() {
       <Card className="p-6">
         <div className="flex items-center gap-3 text-muted-foreground">
           <RefreshCw className="w-5 h-5 animate-spin" />
-          <span>Loading policy insights from live data…</span>
+          <span>{t('loadingPolicyInsights')}</span>
         </div>
       </Card>
     );
@@ -71,11 +77,11 @@ export function PolicyInsightsTab() {
       <Card className="p-6 bg-red-50 border-red-200">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-red-700 font-semibold">Unable to load policy insights</p>
+            <p className="text-red-700 font-semibold">{t('unableToLoadPolicyInsights')}</p>
             <p className="text-sm text-red-600">{error}</p>
           </div>
           <Button variant="outline" onClick={fetchInsights} icon={<RefreshCw className="w-4 h-4" />}>
-            Retry
+            {t('retry')}
           </Button>
         </div>
       </Card>
@@ -98,14 +104,14 @@ export function PolicyInsightsTab() {
               <Sparkles className="w-6 h-6 text-white" />
             </motion.div>
             <div>
-              <h2 className="text-2xl font-bold text-black">Data-Powered Policy Insights</h2>
+              <h2 className="text-2xl font-bold text-black">{t('policyInsightsHeader')}</h2>
               <p className="text-sm text-muted-foreground">
-                Live recommendations generated from health record activity and coverage data
+                {t('policyInsightsSubheader')}
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={fetchInsights} icon={<RefreshCw className="w-4 h-4" />}>
-            Refresh data
+            {t('refreshData')}
           </Button>
         </div>
       </Card>
@@ -113,14 +119,14 @@ export function PolicyInsightsTab() {
       {/* Summary metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Coverage achieved</p>
+          <p className="text-sm text-muted-foreground">{t('coverageAchieved')}</p>
           <p className="text-3xl font-bold text-[#0b6e4f]">{summary.coveragePercent}%</p>
           <p className="text-xs text-muted-foreground">
-            {formatNumber(summary.patientsWithRecords)} of {formatNumber(summary.totalPatients)} patients have records
+            {formatNumber(summary.patientsWithRecords)} {t('of')} {formatNumber(summary.totalPatients)} {t('patientsHaveRecords')}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Records in last 30 days</p>
+          <p className="text-sm text-muted-foreground">{t('recordsLast30Days')}</p>
           <p className="text-3xl font-bold text-[#2196F3]">{formatNumber(summary.last30Records)}</p>
           <div className="flex items-center gap-2 text-sm">
             <TrendingUp className="w-4 h-4 text-[#2196F3]" />
@@ -128,16 +134,16 @@ export function PolicyInsightsTab() {
               {summary.growth30d >= 0 ? '+' : ''}
               {summary.growth30d}%
             </span>
-            <span className="text-muted-foreground">vs previous 30 days</span>
+            <span className="text-muted-foreground">{t('vsPrevious30Days')}</span>
           </div>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Total records</p>
+          <p className="text-sm text-muted-foreground">{t('totalRecords')}</p>
           <p className="text-3xl font-bold text-[#9c27b0]">{formatNumber(summary.totalRecords)}</p>
-          <p className="text-xs text-muted-foreground">Across {formatNumber(summary.uniqueHospitals)} contributing facilities</p>
+          <p className="text-xs text-muted-foreground">{t('across')} {formatNumber(summary.uniqueHospitals)} {t('contributingFacilities')}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Volume trend (7d)</p>
+          <p className="text-sm text-muted-foreground">{t('volumeTrend7d')}</p>
           <div className="flex items-end gap-1 h-14">
             {coverageTrend.slice(-7).map((d) => (
               <div
@@ -148,7 +154,7 @@ export function PolicyInsightsTab() {
               />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Daily uploads over last 7 days</p>
+          <p className="text-xs text-muted-foreground mt-1">{t('dailyUploadsLast7d')}</p>
         </Card>
       </div>
 
@@ -157,7 +163,7 @@ export function PolicyInsightsTab() {
         <Card className="p-4 bg-orange-50 border-orange-200">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-orange-600" />
-            <h3 className="font-semibold text-foreground">Alerts that need attention</h3>
+            <h3 className="font-semibold text-foreground">{t('alertsNeedAttention')}</h3>
           </div>
           <div className="space-y-2">
             {alerts.map((alert, idx) => (
@@ -180,9 +186,9 @@ export function PolicyInsightsTab() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <Brain className="w-5 h-5 text-purple-600" />
-            Highest-load record categories
+            {t('highestLoadRecordCategories')}
           </h3>
-          <Badge variant="info">Last 30 days focus</Badge>
+          <Badge variant="info">{t('last30DaysFocus')}</Badge>
         </div>
         <div className="space-y-3">
           {topCategories.map((c) => (
@@ -191,10 +197,10 @@ export function PolicyInsightsTab() {
                 <div>
                   <p className="font-semibold text-foreground">{c.category}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatNumber(c.total)} records total • {formatNumber(c.last30)} in last 30 days
+                    {formatNumber(c.total)} {t('recordsTotal')} • {formatNumber(c.last30)} {t('inLast30Days')}
                   </p>
                 </div>
-                <Badge variant="success">{Math.round((c.last30 / Math.max(1, c.total)) * 100)}% recent share</Badge>
+                <Badge variant="success">{Math.round((c.last30 / Math.max(1, c.total)) * 100)}% {t('recentShare')}</Badge>
               </div>
               <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                 <div
@@ -203,10 +209,10 @@ export function PolicyInsightsTab() {
                 />
               </div>
             </div>
-          ))}
-          {topCategories.length === 0 && (
-            <p className="text-sm text-muted-foreground">No record categories available yet.</p>
-          )}
+            ))}
+            {topCategories.length === 0 && (
+            <p className="text-sm text-muted-foreground">{t('noRecordCategoriesYet')}</p>
+            )}
         </div>
       </Card>
 
@@ -214,21 +220,21 @@ export function PolicyInsightsTab() {
       <Card>
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <MapPin className="w-5 h-5 text-red-600" />
-          Facilities with highest volume
+          {t('facilitiesWithHighestVolume')}
         </h3>
         <div className="grid md:grid-cols-2 gap-3">
           {hotspots.map((h) => (
             <div key={h.hospital} className="p-4 rounded-lg border border-zinc-800 bg-zinc-900/40">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-foreground">{h.hospital || 'Unnamed facility'}</p>
-                  <p className="text-sm text-muted-foreground">{formatNumber(h.count)} records</p>
+                  <p className="font-semibold text-foreground">{h.hospital || t('unnamedFacility')}</p>
+                  <p className="text-sm text-muted-foreground">{formatNumber(h.count)} {t('recordsLabel')}</p>
                 </div>
-                <Badge variant="warning">High load</Badge>
+                <Badge variant="warning">{t('highLoad')}</Badge>
               </div>
             </div>
           ))}
-          {hotspots.length === 0 && <p className="text-sm text-muted-foreground">No hospitals have uploaded data yet.</p>}
+          {hotspots.length === 0 && <p className="text-sm text-muted-foreground">{t('noHospitalsUploadedYet')}</p>}
         </div>
       </Card>
 
@@ -236,7 +242,7 @@ export function PolicyInsightsTab() {
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Target className="w-5 h-5 text-green-600" />
-          <h3 className="font-semibold text-foreground">Actionable policy moves</h3>
+          <h3 className="font-semibold text-foreground">{t('actionablePolicyMoves')}</h3>
         </div>
         <div className="space-y-3">
           {recommendations.map((rec, idx) => (

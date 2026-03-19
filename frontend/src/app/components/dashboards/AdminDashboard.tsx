@@ -100,7 +100,7 @@ export function AdminDashboard({ user, onLogout, language = 'en' }: AdminDashboa
         >
           {activeTab === 'analytics' && <AnalyticsTab language={language} />}
           {activeTab === 'users' && <UserManagementTab language={language} />}
-          {activeTab === 'policy' && <PolicyInsightsTab />}
+          {activeTab === 'policy' && <PolicyInsightsTab language={language} />}
           {activeTab === 'monitoring' && <SystemMonitoringTab />}
         </motion.div>
       </div>
