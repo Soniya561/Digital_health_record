@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/app/components/ui/dialog';
-import { api } from '@/app/utils/api';
+import { api, getAppOrigin } from '@/app/utils/api';
 import { useTranslation } from '@/app/utils/translations';
 import { useLanguage } from '@/app/context/LanguageContext';
 
@@ -82,7 +82,7 @@ export function PatientHistoryTab({ patient }: PatientHistoryTabProps) {
       // Get or create QR token for the record
       const res: any = await api.post(`/records/${record._id}/qr`, {});
       const token = res.qrToken;
-      const shareUrl = `${window.location.origin}/qr/${token}`;
+      const shareUrl = `${getAppOrigin()}/qr/${token}`;
 
       if (navigator.share) {
         await navigator.share({

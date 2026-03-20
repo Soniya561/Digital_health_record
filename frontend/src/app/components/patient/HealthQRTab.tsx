@@ -5,7 +5,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { useTranslation } from '@/app/utils/translations';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { api } from '@/app/utils/api';
+import { api, getAppOrigin } from '@/app/utils/api';
 
 export function HealthQRTab({ user }: { user: any }) {
   const { language } = useLanguage();
@@ -32,7 +32,7 @@ export function HealthQRTab({ user }: { user: any }) {
   const qrUrl = qrData?.qrCodeDataUrl;
   const blockchainId = qrData?.blockchainId || user?.blockchainId;
   const shareUrl = blockchainId
-    ? `${window.location.origin}/?publicProfile=${encodeURIComponent(blockchainId)}`
+    ? `${getAppOrigin()}/?publicProfile=${encodeURIComponent(blockchainId)}`
     : '';
 
   const handleDownload = () => {

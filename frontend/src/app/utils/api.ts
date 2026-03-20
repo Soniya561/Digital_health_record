@@ -1,3 +1,5 @@
+const APP_ORIGIN = (import.meta.env.VITE_PUBLIC_URL as string) || window.location.origin;
+
 const API_URL = (import.meta.env.VITE_API_URL as string) ||
   (() => {
     const host = window.location.hostname;
@@ -5,6 +7,8 @@ const API_URL = (import.meta.env.VITE_API_URL as string) ||
     const apiHost = host === 'localhost' || host === '127.0.0.1' ? 'localhost' : host;
     return `${protocol}//${apiHost}:4000/api`;
   })();
+
+export const getAppOrigin = () => APP_ORIGIN;
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');

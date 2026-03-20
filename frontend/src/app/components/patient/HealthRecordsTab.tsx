@@ -15,7 +15,7 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/app/components/ui/dialog';
-import { api } from '@/app/utils/api';
+import { api, getAppOrigin } from '@/app/utils/api';
 import { useTranslation } from '@/app/utils/translations';
 import { useLanguage } from '@/app/context/LanguageContext';
 
@@ -143,7 +143,7 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
        // if blockchainId is not available, we can't generate link
        return;
     }
-    const shareLink = `${window.location.origin}/?publicProfile=${encodeURIComponent(profile.blockchainId)}`;
+    const shareLink = `${getAppOrigin()}/?publicProfile=${encodeURIComponent(profile.blockchainId)}`;
     await navigator.clipboard.writeText(shareLink);
     alert('Public profile link copied to clipboard');
   };
@@ -154,7 +154,7 @@ export function HealthRecordsTab({ onNavigate }: HealthRecordsTabProps) {
       const token = res.qrToken;
       
       // Construct share link using the current origin (includes IP if accessing via IP)
-      const shareLink = `${window.location.origin}/qr/${token}`;
+      const shareLink = `${getAppOrigin()}/qr/${token}`;
       
       // Use the Web Share API if available (mobile support)
       if (navigator.share) {
@@ -567,7 +567,7 @@ function UploadRecordDialog({ open, onOpenChange, onUpload, uploading, t, profil
 function SuccessQRDialog({ record, qrToken, open, onOpenChange, t }: any) {
   if (!record || !qrToken) return null;
 
-  const shareLink = `${window.location.origin}/qr/${qrToken}`;
+  const shareLink = `${getAppOrigin()}/qr/${qrToken}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareLink)}`;
 
   const handleShare = async () => {
@@ -658,7 +658,7 @@ function RecordDetailsDialog({ record, open, onOpenChange, onDownload, onShare, 
   if (!record) return null;
 
   const qrUrl = record.qrToken 
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/qr/${record.qrToken}`)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${getAppOrigin()}/qr/${record.qrToken}`)}`
     : null;
 
   return (
