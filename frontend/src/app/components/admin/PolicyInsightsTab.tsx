@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, TrendingUp, AlertTriangle, Target, RefreshCw, Brain, Activity, MapPin } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
@@ -60,6 +60,12 @@ export function PolicyInsightsTab({ language = 'en' }: PolicyInsightsTabProps) {
     if (!data?.topCategories?.length) return 1;
     return Math.max(...data.topCategories.map((c) => c.total || 0), 1);
   }, [data]);
+
+  const td = useCallback((value: string) => {
+    if (!value) return value;
+    const translated = t(value);
+    return translated || value;
+  }, [t]);
 
   if (loading) {
     return (
@@ -169,11 +175,11 @@ export function PolicyInsightsTab({ language = 'en' }: PolicyInsightsTabProps) {
             {alerts.map((alert, idx) => (
               <div key={idx} className="flex items-start justify-between">
                 <div>
-                  <p className="font-medium text-foreground">{alert.title}</p>
-                  <p className="text-sm text-muted-foreground">{alert.detail}</p>
+                  <p className="font-medium text-foreground">{td(alert.title)}</p>
+                  <p className="text-sm text-muted-foreground">{td(alert.detail)}</p>
                 </div>
                 <Badge variant={alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'info'}>
-                  {alert.severity.toUpperCase()}
+                  {td(alert.severity)}
                 </Badge>
               </div>
             ))}
@@ -195,7 +201,7 @@ export function PolicyInsightsTab({ language = 'en' }: PolicyInsightsTabProps) {
             <div key={c.category} className="p-3 rounded-lg border border-zinc-800 bg-zinc-900/40">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="font-semibold text-foreground">{c.category}</p>
+                  <p className="font-semibold text-foreground">{td(c.category)}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatNumber(c.total)} {t('recordsTotal')} • {formatNumber(c.last30)} {t('inLast30Days')}
                   </p>
@@ -254,16 +260,16 @@ export function PolicyInsightsTab({ language = 'en' }: PolicyInsightsTabProps) {
               className="p-4 rounded-lg border border-zinc-800 bg-accent"
             >
               <div className="flex items-center justify-between mb-2">
-                <Badge variant="info">{rec.category}</Badge>
+                <Badge variant="info">{td(rec.category)}</Badge>
                 <Badge variant={rec.priority === 'high' ? 'danger' : rec.priority === 'medium' ? 'warning' : 'default'}>
-                  {rec.priority.toUpperCase()}
+                  {td(rec.priority)}
                 </Badge>
               </div>
-              <h4 className="font-semibold text-foreground mb-1">{rec.title}</h4>
-              <p className="text-sm text-muted-foreground mb-2">{rec.action}</p>
+              <h4 className="font-semibold text-foreground mb-1">{td(rec.title)}</h4>
+              <p className="text-sm text-muted-foreground mb-2">{td(rec.action)}</p>
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <Activity className="w-4 h-4" />
-                <span>{rec.expectedImpact}</span>
+                <span>{td(rec.expectedImpact)}</span>
               </div>
             </motion.div>
           ))}

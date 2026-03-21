@@ -457,7 +457,7 @@ export function UserManagementTab({ language = 'en' }: UserManagementTabProps) {
                 <div className="flex gap-2">
                   {!user.verified && (
                     <Button variant="primary" size="sm" disabled={savingUserId === user.id} onClick={() => handleVerify(user.id)}>
-                      Verify
+                      {t('verify')}
                     </Button>
                   )}
                   <Button 
@@ -487,18 +487,20 @@ export function UserManagementTab({ language = 'en' }: UserManagementTabProps) {
         onSave={handleSaveUser}
         savingId={savingUserId}
         formatDate={formatLastActive}
+        t={t}
       />
     </div>
   );
 }
 
-function UserDetailDialog({ user, open, onOpenChange, onSave, savingId, formatDate }: { 
+function UserDetailDialog({ user, open, onOpenChange, onSave, savingId, formatDate, t }: { 
   user: UserRecord | null, 
   open: boolean, 
   onOpenChange: (open: boolean) => void,
   onSave: (id: string, updates: Partial<UserRecord>) => void,
   savingId: string | null,
-  formatDate: (v: any) => string
+  formatDate: (v: any) => string,
+  t: (key: string) => string
 }) {
   if (!user) return null;
 
@@ -603,7 +605,7 @@ function UserDetailDialog({ user, open, onOpenChange, onSave, savingId, formatDa
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-xs text-zinc-500 uppercase font-semibold flex items-center gap-1">
-                <Shield className="w-3 h-3" /> Verification
+                <Shield className="w-3 h-3" /> {t('verification')}
               </p>
               <div className="flex items-center gap-2">
                 <input
@@ -611,7 +613,7 @@ function UserDetailDialog({ user, open, onOpenChange, onSave, savingId, formatDa
                   checked={verified}
                   onChange={(e) => setVerified(e.target.checked)}
                 />
-                <span className="text-sm">{verified ? 'Verified' : 'Pending'}</span>
+                <span className="text-sm">{verified ? t('verified') : t('pending')}</span>
               </div>
             </div>
             <div className="space-y-1">
