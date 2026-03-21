@@ -11,7 +11,24 @@ function parseUrl(value?: string) {
 
 function resolveAppOrigin() {
   if (typeof window !== 'undefined') {
-    return window.location.origin;
+    const currentOrigin = window.location.origin;
+    const currentHost = window.location.hostname;
+
+    if (!LOCAL_HOSTS.has(currentHost)) {
+      return currentOrigin;
+    }
+
+    const envPublicUrl = parseUrl((import.meta.env.VITE_PUBLIC_URL as string | undefined)?.trim());
+    if (envPublicUrl && !LOCAL_HOSTS.has(envPublicUrl.hostname)) {
+      return envPublicUrl.origin;
+    }
+
+    const envApiUrl = parseUrl((import.meta.env.VITE_API_URL as string | undefined)?.trim());
+    if (envApiUrl && !LOCAL_HOSTS.has(envApiUrl.hostname)) {
+      return `${window.location.protocol}//${envApiUrl.hostname}:5173`;
+    }
+
+    return currentOrigin;
   }
 
   return (import.meta.env.VITE_PUBLIC_URL as string) || 'http://localhost:5173';

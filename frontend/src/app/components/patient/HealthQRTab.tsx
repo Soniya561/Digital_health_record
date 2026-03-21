@@ -10,7 +10,7 @@ import { api, getAppOrigin } from '@/app/utils/api';
 export function HealthQRTab({ user }: { user: any }) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const [qrData, setQrData] = useState<{ qrCodeDataUrl: string, blockchainId: string } | null>(null);
+  const [qrData, setQrData] = useState<{ qrCodeDataUrl: string, blockchainId: string, publicUrl?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShareLink, setShowShareLink] = useState(false);
 
@@ -31,9 +31,9 @@ export function HealthQRTab({ user }: { user: any }) {
 
   const qrUrl = qrData?.qrCodeDataUrl;
   const blockchainId = qrData?.blockchainId || user?.blockchainId;
-  const shareUrl = blockchainId
+  const shareUrl = qrData?.publicUrl || (blockchainId
     ? `${getAppOrigin()}/?publicProfile=${encodeURIComponent(blockchainId)}`
-    : '';
+    : '');
 
   const handleDownload = () => {
     if (!qrUrl) return;

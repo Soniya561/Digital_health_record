@@ -4,13 +4,70 @@ const Appointment = require('../models/Appointment');
 const Consent = require('../models/Consent');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const os = require('os');
 const { signToken, verifyToken } = require('../utils/jwt');
 
-function resolveFrontendUrl(req) {
-  const origin = req.get('origin');
-  if (origin) return origin;
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
-  return process.env.FRONTEND_URL || 'http://localhost:5173';
+function isLocalHost(hostname = '') {
+  return LOCAL_HOSTS.has((hostname || '').toLowerCase());
+}
+
+function parseUrl(value) {
+  if (!value) return null;
+  try {
+    return new URL(value);
+  } catch (_) {
+    return null;
+  }
+}
+
+function firstLanIPv4() {
+  const interfaces = os.networkInterfaces();
+  for (const list of Object.values(interfaces)) {
+    for (const item of list || []) {
+      if (item.family === 'IPv4' && !item.internal) {
+        return item.address;
+      }
+    }
+  }
+  return null;
+}
+
+function resolveFrontendUrl(req) {
+  const configuredFrontend = parseUrl(process.env.FRONTEND_URL);
+  const origin = parseUrl(req.get('origin'));
+  const forwardedHost = req.get('x-forwarded-host');
+  const hostHeader = forwardedHost || req.get('host');
+  const hostCandidate = hostHeader ? hostHeader.split(',')[0].trim() : '';
+  const hostUrl = parseUrl(`http://${hostCandidate}`);
+  const frontendPort = configuredFrontend?.port || process.env.FRONTEND_PORT || '5173';
+  const protocol =
+    origin?.protocol ||
+    configuredFrontend?.protocol ||
+    (req.secure ? 'https:' : 'http:');
+
+  if (origin && !isLocalHost(origin.hostname)) {
+    return origin.origin;
+  }
+
+  if (configuredFrontend && !isLocalHost(configuredFrontend.hostname)) {
+    return configuredFrontend.origin;
+  }
+
+  if (hostUrl && !isLocalHost(hostUrl.hostname)) {
+    return `${protocol}//${hostUrl.hostname}:${frontendPort}`;
+  }
+
+  const lanIp = firstLanIPv4();
+  if (lanIp) {
+    return `${protocol}//${lanIp}:${frontendPort}`;
+  }
+
+  if (configuredFrontend) return configuredFrontend.origin;
+  if (origin) return origin.origin;
+
+  return 'http://localhost:5173';
 }
 
 // Get current user's profile
@@ -175,7 +232,7 @@ exports.getQRCode = async (req, res, next) => {
     const publicUrl = `${frontendUrl}/?publicProfile=${encodeURIComponent(user.blockchainId)}`;
     const qrCodeDataUrl = await QRCode.toDataURL(publicUrl);
     
-    res.json({ qrCodeDataUrl, blockchainId: user.blockchainId });
+    res.json({ qrCodeDataUrl, blockchainId: user.blockchainId, publicUrl });
   } catch (err) { next(err); }
 };
 
@@ -201,7 +258,8 @@ exports.getPublicProfile = async (req, res, next) => {
       patient,
       healthRecords,
       appointments,
-      qrCodeDataUrl
+      qrCodeDataUrl,
+      publicUrl
     });
   } catch (err) { next(err); }
 };
