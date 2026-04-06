@@ -66,7 +66,6 @@ export function LanguageSelectionScreen({ onLanguageSelect }: LanguageSelectionS
   const currentTitle = translations.title[activeIndex];
   const currentSubtitle = translations.subtitle[activeIndex];
   const currentFooter = translations.footer[activeIndex];
-  const currentLanguageTagline = translations.languageTagline[activeIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-zinc-900 flex items-center justify-center p-4">
@@ -120,23 +119,6 @@ export function LanguageSelectionScreen({ onLanguageSelect }: LanguageSelectionS
           <LanguageSelector onSelect={onLanguageSelect} />
         </motion.div>
 
-        {/* Footer */}
-        <motion.div
-          className="text-center mt-6 text-sm text-gray-400"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <p>{currentFooter}</p>
-          <p className="text-xs text-gray-300 mt-1">{currentLanguageTagline}</p>
-          <div className="mt-1 flex flex-wrap justify-center gap-2 text-xs sm:text-sm">
-            {translations.languageNames[activeIndex].map((langLabel) => (
-              <span key={langLabel} className="px-2 py-1 rounded-full border border-zinc-700 bg-zinc-800/70">
-                {langLabel}
-              </span>
-            ))}
-          </div>
-        </motion.div>
       </motion.div>
     </div>
   );
