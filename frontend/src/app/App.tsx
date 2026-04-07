@@ -55,8 +55,15 @@ export default function App() {
 
   const fetchProfile = async () => {
     try {
-      const res = await api.get('/patients/me');
-      setUser(res.user);
+      const API = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API}/api/profile`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      setUser(data);
     } catch (err) {
       console.error('Failed to fetch profile', err);
     }

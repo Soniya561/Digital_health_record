@@ -65,19 +65,18 @@ export function UserManagementTab({ language = 'en' }: UserManagementTabProps) {
   const [loadingPendingAppts, setLoadingPendingAppts] = useState(true);
 
   const fetchUsers = useCallback(async (query = '', role = 'all') => {
-    setLoading(true);
-    setError(null);
     try {
-      const params = new URLSearchParams();
-      if (query) params.append('search', query);
-      if (role && role !== 'all') params.append('role', role);
-      
-      const res = await api.get(`/admin/users?${params.toString()}`);
-      setUsers((res as any).users || []);
-    } catch (err: any) {
-      setError(err?.message || t('failedToLoadUsers'));
-    } finally {
-      setLoading(false);
+      const API = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API}/api/users?query=${query}&role=${role}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      setUsers(data);
+    } catch (err) {
+      console.error('Failed to fetch users', err);
     }
   }, []);
 

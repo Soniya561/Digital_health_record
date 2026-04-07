@@ -50,25 +50,15 @@ export function SchemesTab({ onNavigate }: { onNavigate?: (tab: string) => void 
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      const [schemesRes, profileRes] = await Promise.all([
-        api.get('/patients/schemes'),
-        api.get('/patients/me')
-      ]);
-      setSchemes(schemesRes.manualResults || []);
-      setAiRecommendations(schemesRes.aiRecommendations || null);
-      setPatient(profileRes.user);
-      
-      // Initialize form with patient data
-      if (profileRes.user) {
-        setFormData({
-          income: profileRes.user.income?.toString() || '',
-          isBPL: profileRes.user.isBPL || false,
-          isMigrant: profileRes.user.isMigrant || false,
-          employmentType: profileRes.user.employmentType || '',
-          chronicConditions: profileRes.user.chronicConditions?.join(', ') || '',
-        });
-      }
+      const API = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API}/api/schemes`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      setSchemes(data);
     } catch (error) {
       console.error('Failed to fetch schemes:', error);
       toast.error(t('failedToLoadSchemes'));

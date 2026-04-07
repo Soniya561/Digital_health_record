@@ -41,11 +41,16 @@ export function PolicyInsightsTab({ language = 'en' }: PolicyInsightsTabProps) {
 
   const fetchInsights = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const res = await api.get('/analytics/policy');
-      setData(res);
-    } catch (err: any) {
+      const API = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${API}/api/analytics/policy`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      setData(data);
+    } catch (err) {
       setError(err.message || t('unableToLoadPolicyInsights'));
     } finally {
       setLoading(false);

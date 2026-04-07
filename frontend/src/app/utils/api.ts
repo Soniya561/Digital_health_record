@@ -157,3 +157,10 @@ export const api = {
   upload,
   API_URL,
 };
+
+// Updated fetch calls to include '/api' prefix
+export async function fetchData(endpoint, options) {
+  const API = import.meta.env.VITE_API_URL;
+  const response = await fetch(`${API}/api${endpoint}`, options);
+  return response.json();
+}
