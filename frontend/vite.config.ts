@@ -16,7 +16,7 @@ const httpsOptions =
       }
     : undefined
 
-const backendTarget = process.env.BACKEND_URL || 'http://localhost:4001'
+const backendTarget = 'https://digital-health-record.onrender.com'
 
 export default defineConfig({
   plugins: [
@@ -33,12 +33,12 @@ export default defineConfig({
       '/api': {
         target: backendTarget,
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
       '/uploads': {
         target: backendTarget,
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

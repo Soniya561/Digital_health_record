@@ -59,15 +59,7 @@ function resolveFrontendUrl(req) {
     return `${protocol}//${hostUrl.hostname}:${frontendPort}`;
   }
 
-  const lanIp = firstLanIPv4();
-  if (lanIp) {
-    return `${protocol}//${lanIp}:${frontendPort}`;
-  }
-
-  if (configuredFrontend) return configuredFrontend.origin;
-  if (origin) return origin.origin;
-
-  return 'http://localhost:5173';
+  return 'https://digital-health-record.onrender.com';
 }
 
 // Get current user's profile

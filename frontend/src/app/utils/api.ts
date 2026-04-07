@@ -18,20 +18,15 @@ function resolveAppOrigin() {
       return currentOrigin;
     }
 
-    const envPublicUrl = parseUrl((import.meta.env.VITE_PUBLIC_URL as string | undefined)?.trim());
-    if (envPublicUrl && !LOCAL_HOSTS.has(envPublicUrl.hostname)) {
-      return envPublicUrl.origin;
-    }
-
     const envApiUrl = parseUrl((import.meta.env.VITE_API_URL as string | undefined)?.trim());
     if (envApiUrl && !LOCAL_HOSTS.has(envApiUrl.hostname)) {
-      return `${window.location.protocol}//${envApiUrl.hostname}:5173`;
+      return `${window.location.protocol}//${envApiUrl.hostname}`;
     }
 
     return currentOrigin;
   }
 
-  return (import.meta.env.VITE_PUBLIC_URL as string) || 'http://localhost:5173';
+  return import.meta.env.VITE_API_URL;
 }
 
 function resolveApiUrl() {
@@ -43,30 +38,16 @@ function resolveApiUrl() {
   const envApiUrl = parseUrl(rawEnvApiUrl);
 
   if (typeof window === 'undefined') {
-    return envApiUrl?.toString().replace(/\/$/, '') || 'http://localhost:4001/api';
+    return envApiUrl?.toString().replace(/\/$/, '') || import.meta.env.VITE_API_URL;
   }
 
   const currentHost = window.location.hostname;
   const currentProtocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const normalizedCurrentHost = LOCAL_HOSTS.has(currentHost) ? 'localhost' : currentHost;
 
-  if (!envApiUrl) {
-    return `${currentProtocol}//${normalizedCurrentHost}:4001/api`;
-  }
-
-  const envHost = envApiUrl.hostname;
-  const envPort = envApiUrl.port || '4001';
-  const envPath = envApiUrl.pathname || '/api';
-  const envIsLocal = LOCAL_HOSTS.has(envHost);
-  const currentIsLocal = LOCAL_HOSTS.has(currentHost);
-  const shouldSwapToCurrentHost =
-    !envIsLocal && !currentIsLocal && envHost !== currentHost;
-  const resolvedHost = shouldSwapToCurrentHost ? normalizedCurrentHost : envHost;
-  const resolvedProtocol =
-    currentProtocol === 'https:' ? 'https:' : (envApiUrl.protocol || 'http:');
-
-  return `${resolvedProtocol}//${resolvedHost}:${envPort}${envPath}`.replace(/\/$/, '');
+  return `${currentProtocol}//${currentHost}`;
 }
+
+console.log("API URL:", import.meta.env.VITE_API_URL);
 
 const APP_ORIGIN = resolveAppOrigin();
 const API_URL = resolveApiUrl();

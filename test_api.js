@@ -1,7 +1,6 @@
-
 async function test() {
   console.log('Testing Login...');
-  const resp = await fetch('http://localhost:4000/api/auth/login', {
+  const resp = await fetch('https://digital-health-record.onrender.com/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: 'patient@demo.com', password: 'password123' })
@@ -11,7 +10,7 @@ async function test() {
 
   if (data.token) {
     console.log('Testing Get Records...');
-    const recordsResp = await fetch('http://localhost:4000/api/records', {
+    const recordsResp = await fetch('https://digital-health-record.onrender.com/api/records', {
       method: 'GET',
       headers: { 
         'Authorization': `Bearer ${data.token}`,

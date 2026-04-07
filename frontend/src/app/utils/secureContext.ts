@@ -10,16 +10,16 @@ export interface SecureContextInfo {
 export function getSecureContextInfo(): SecureContextInfo {
   if (typeof window === 'undefined') {
     return {
-      host: 'localhost',
-      isLocalHost: true,
+      host: import.meta.env.VITE_API_URL || 'localhost',
+      isLocalHost: false,
       isSecureContextOk: true,
       secureOriginUrl: '',
-      protocol: 'http:',
+      protocol: 'https:',
       message: '',
     };
   }
 
-  const host = window.location.hostname || 'localhost';
+  const host = window.location.hostname || import.meta.env.VITE_API_URL || 'localhost';
   const port = window.location.port ? `:${window.location.port}` : '';
   const path = `${window.location.pathname}${window.location.search}`;
   const protocol = window.location.protocol;
