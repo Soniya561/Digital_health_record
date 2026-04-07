@@ -124,6 +124,29 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
     }
   };
 
+  const sendOTP = async () => {
+    try {
+      const response = await fetch('https://my-backend.onrender.com/api/auth/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, role: selectedRole }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('OTP sent successfully:', data);
+      setOtpSent(true);
+    } catch (error) {
+      console.error('Failed to send OTP:', error);
+      setError('Failed to send OTP. Please try again.');
+    }
+  };
+
   const handleEmailLogin = async (role: string) => {
     if (!loginPhoto) {
       setError(t('errorUploadPhotoFirst'));

@@ -1,16 +1,28 @@
-
-async function testOTP() {
-  console.log('Testing Send OTP...');
+// sendOtp.js
+async function sendOTP(email) {
   try {
-    const resp = await fetch('http://127.0.0.1:4000/api/auth/send-otp', {
+    // Use backend URL from environment variable if available, otherwise fallback to localhost
+    const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:4000/api/auth';
+
+    const response = await fetch(`${BACKEND_URL}/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com' })
+      body: JSON.stringify({ email }),
     });
-    const data = await resp.json();
-    console.log('OTP Response:', JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error('Fetch error:', err.message);
+
+    const data = await response.json();
+    console.log('OTP Response:', data);
+
+    if (data.success) {
+      alert('OTP sent successfully!');
+    } else {
+      alert('Failed to send OTP. Try again.');
+    }
+  } catch (error) {
+    console.error('Error sending OTP:', error.message);
+    alert('Error sending OTP. Check console for details.');
   }
 }
-testOTP();
+
+// Example usage:
+sendOTP('test@example.com');
