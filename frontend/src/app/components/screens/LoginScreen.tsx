@@ -126,7 +126,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
 
   const sendOTP = async () => {
     try {
-      const response = await fetch('https://my-backend.onrender.com/api/auth/send-otp', {
+      const response = await fetch('https://digital-health-record.onrender.com/api/auth/send-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
