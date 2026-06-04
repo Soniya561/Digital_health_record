@@ -44,11 +44,11 @@ async function startServer() {
       const certFile = path.isAbsolute(sslCertPath) ? sslCertPath : path.resolve(backendRoot, sslCertPath);
       const key = fs.readFileSync(keyFile);
       const cert = fs.readFileSync(certFile);
-      https.createServer({ key, cert }, app).listen(PORT, () => {
+      https.createServer({ key, cert }, app).listen(PORT, '0.0.0.0', () => {
         console.log(`HTTPS server running on port ${PORT}`);
       });
     } else {
-      http.createServer(app).listen(PORT, () => {
+      http.createServer(app).listen(PORT, '0.0.0.0', () => {
         console.log(`HTTP server running on port ${PORT}`);
       });
     }
