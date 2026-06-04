@@ -1,22 +1,7 @@
 import { defineConfig } from 'vite'
 import path from 'path'
-import fs from 'fs'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-
-const useHttps = process.env.VITE_DEV_HTTPS === 'true'
-const httpsKeyPath = process.env.VITE_DEV_HTTPS_KEY_PATH
-const httpsCertPath = process.env.VITE_DEV_HTTPS_CERT_PATH
-
-const httpsOptions =
-  useHttps && httpsKeyPath && httpsCertPath
-    ? {
-        key: fs.readFileSync(path.resolve(__dirname, httpsKeyPath)),
-        cert: fs.readFileSync(path.resolve(__dirname, httpsCertPath)),
-      }
-    : undefined
-
-const backendTarget = process.env.BACKEND_URL || 'http://localhost:4001'
 
 export default defineConfig({
   plugins: [
@@ -28,15 +13,14 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    https: httpsOptions,
     proxy: {
       '/api': {
-        target: backendTarget,
+        target: process.env.VITE_API_URL || 'http://localhost:4001',
         changeOrigin: true,
         secure: false,
       },
       '/uploads': {
-        target: backendTarget,
+        target: process.env.VITE_API_URL || 'http://localhost:4001',
         changeOrigin: true,
         secure: false,
       },

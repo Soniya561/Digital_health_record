@@ -1,77 +1,24 @@
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
 
-function parseUrl(value?: string) {
-  if (!value) return null;
-  try {
-    return new URL(value);
-  } catch {
-    return null;
-  }
-}
-
-function resolveAppOrigin() {
-  if (typeof window !== 'undefined') {
-    const currentOrigin = window.location.origin;
-    const currentHost = window.location.hostname;
-
-    if (!LOCAL_HOSTS.has(currentHost)) {
-      return currentOrigin;
-    }
-
-    const envPublicUrl = parseUrl((import.meta.env.VITE_PUBLIC_URL as string | undefined)?.trim());
-    if (envPublicUrl && !LOCAL_HOSTS.has(envPublicUrl.hostname)) {
-      return envPublicUrl.origin;
-    }
-
-    const envApiUrl = parseUrl((import.meta.env.VITE_API_URL as string | undefined)?.trim());
-    if (envApiUrl && !LOCAL_HOSTS.has(envApiUrl.hostname)) {
-      return `${window.location.protocol}//${envApiUrl.hostname}:5173`;
-    }
-
-    return currentOrigin;
-  }
-
-  return (import.meta.env.VITE_PUBLIC_URL as string) || 'http://localhost:5173';
-}
-
 function resolveApiUrl() {
-  const rawEnvApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
-  if (rawEnvApiUrl?.startsWith('/')) {
-    return rawEnvApiUrl.replace(/\/$/, '');
+  // Primary: Use VITE_API_URL if configured
+  const envApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (envApiUrl) {
+    return envApiUrl.replace(/\/$/, '');
   }
-
-  const envApiUrl = parseUrl(rawEnvApiUrl);
-
-  if (typeof window === 'undefined') {
-    return envApiUrl?.toString().replace(/\/$/, '') || 'http://localhost:4001/api';
-  }
-
-  const currentHost = window.location.hostname;
-  const currentProtocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const normalizedCurrentHost = LOCAL_HOSTS.has(currentHost) ? 'localhost' : currentHost;
-
-  if (!envApiUrl) {
-    return `${currentProtocol}//${normalizedCurrentHost}:4001/api`;
-  }
-
-  const envHost = envApiUrl.hostname;
-  const envPort = envApiUrl.port || '4001';
-  const envPath = envApiUrl.pathname || '/api';
-  const envIsLocal = LOCAL_HOSTS.has(envHost);
-  const currentIsLocal = LOCAL_HOSTS.has(currentHost);
-  const shouldSwapToCurrentHost =
-    !envIsLocal && !currentIsLocal && envHost !== currentHost;
-  const resolvedHost = shouldSwapToCurrentHost ? normalizedCurrentHost : envHost;
-  const resolvedProtocol =
-    currentProtocol === 'https:' ? 'https:' : (envApiUrl.protocol || 'http:');
-
-  return `${resolvedProtocol}//${resolvedHost}:${envPort}${envPath}`.replace(/\/$/, '');
+  
+  // Fallback: Use relative path (for dev and production)
+  return '/api';
 }
 
-const APP_ORIGIN = resolveAppOrigin();
 const API_URL = resolveApiUrl();
 
-export const getAppOrigin = () => APP_ORIGIN;
+export const getAppOrigin = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:5173';
+};
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -82,11 +29,16 @@ async function request(endpoint: string, options: RequestInit = {}) {
   };
 
   const response = await fetch(`${API_URL}${endpoint}`, {
+    credentials: 'include',
     ...options,
     headers,
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
     // Try parse json error, otherwise fallback
     const error = await response.json().catch(() => ({ error: 'An error occurred' }));
     throw new Error(error.error || error.message || 'Request failed');
@@ -101,6 +53,26 @@ async function request(endpoint: string, options: RequestInit = {}) {
   // Otherwise return raw response (blob/stream)
   return response;
 }
+
+export const apiRequest = {
+  get: (endpoint: string) => request(endpoint, { method: 'GET' }),
+  post: (endpoint: string, body?: any) =>
+    request(endpoint, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  put: (endpoint: string, body?: any) =>
+    request(endpoint, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  patch: (endpoint: string, body?: any) =>
+    request(endpoint, {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  delete: (endpoint: string) => request(endpoint, { method: 'DELETE' }),
+};
 
 async function download(endpoint: string, suggestedFilename?: string) {
   const token = localStorage.getItem('token');

@@ -1,25 +1,19 @@
 /**
  * API Configuration
- * Automatically uses the correct backend URL based on the environment
+ * Uses VITE_API_URL environment variable for backend communication
+ * Automatically defaults to localhost for development
  */
 
-// Determine the API base URL
+// Determine the API base URL from environment or use relative path
 const getApiBaseUrl = (): string => {
-  // In development, use the network IP if available
-  if (import.meta.env.MODE === 'development') {
-    // Get the current hostname/IP
-    const host = window.location.hostname;
-    
-    // If it's 192.168.56.1, use that with port 4001
-    if (host === '192.168.56.1' || host === '10.53.186.5') {
-      return `http://${host}:4001`;
-    }
-    
-    // Otherwise use localhost
-    return 'http://localhost:4001';
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  
+  // If VITE_API_URL is set, use it (supports both relative and absolute URLs)
+  if (envUrl) {
+    return envUrl.replace(/\/$/, ''); // Remove trailing slash
   }
   
-  // In production, use the relative API path
+  // Default to relative path for development
   return '/api';
 };
 
