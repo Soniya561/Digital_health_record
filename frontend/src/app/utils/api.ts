@@ -4,7 +4,9 @@ function resolveApiUrl() {
   // Primary: Use VITE_API_URL if configured
   const envApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
   if (envApiUrl) {
-    return envApiUrl.replace(/\/$/, '');
+    const cleanedUrl = envApiUrl.replace(/\/$/, '');
+    // Ensure the frontend always targets the backend prefix used by Express routes.
+    return cleanedUrl.endsWith('/api') ? cleanedUrl : `${cleanedUrl}/api`;
   }
   
   // Fallback: Use relative path (for dev and production)
