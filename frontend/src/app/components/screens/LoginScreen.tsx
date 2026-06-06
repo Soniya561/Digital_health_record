@@ -99,10 +99,6 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
   });
 
   const handleSendOTP = async () => {
-    if (!loginPhoto) {
-      setError(t('errorUploadPhotoFirst'));
-      return;
-    }
     if (!selectedRole) {
       setError(t('errorSelectRole'));
       return;
@@ -686,7 +682,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
                         size="lg"
                         fullWidth
                         onClick={otpSent ? () => handleEmailLogin(selectedRole) : handleSendOTP}
-                        disabled={loading || !loginPhoto}
+                        disabled={loading}
                       >
                         {loading ? t('sending') : (otpSent ? t('continue') : t('sendOTP'))}
                       </Button>
