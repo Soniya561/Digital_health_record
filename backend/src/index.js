@@ -20,7 +20,48 @@ const app = express();
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
-app.use(cors());
+// Configure CORS with explicit origins and credentials support.
+// Do NOT allow wildcard '*' when credentials are used.
+const allowedOrigins = [];
+if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
+if (process.env.FRONTEND_URLS) {
+  // Optional: comma-separated list of allowed origins
+  allowedOrigins.push(...process.env.FRONTEND_URLS.split(',').map((s) => s.trim()).filter(Boolean));
+}
+// Allow common localhost dev origins when not in production so developers can test locally
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:5173', 'https://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000');
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like curl, mobile apps, same-origin)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    console.warn('Blocked CORS request from origin:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  // expose common headers for clients
+  exposedHeaders: ['Content-Range', 'X-Content-Range', 'Authorization', 'Set-Cookie'],
+}));
+// Log configured CORS origins for visibility on startup
+const configuredFrontend = process.env.FRONTEND_URL || null;
+console.log('Configured FRONTEND_URL:', configuredFrontend);
+console.log('Allowed CORS origins:', allowedOrigins);
+
+// Health/debug endpoint for deployment verification
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    env: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 4001,
+    frontend: configuredFrontend,
+    allowedOrigins,
+  });
+});
 app.use(express.json());
 app.use(morgan('dev'));
 
