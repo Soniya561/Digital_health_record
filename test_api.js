@@ -1,25 +1,40 @@
-
 async function test() {
   console.log('Testing Login...');
-  const resp = await fetch('http://localhost:4000/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'patient@demo.com', password: 'password123' })
-  });
+
+  const resp = await fetch(
+    `${import.meta.env.VITE_API_URL}/auth/login`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'patient@demo.com',
+        password: 'password123'
+      })
+    }
+  );
+
   const data = await resp.json();
+
   console.log('Login Response:', JSON.stringify(data, null, 2));
 
   if (data.token) {
     console.log('Testing Get Records...');
-    const recordsResp = await fetch('http://localhost:4000/api/records', {
-      method: 'GET',
-      headers: { 
-        'Authorization': `Bearer ${data.token}`,
-        'Content-Type': 'application/json'
+
+    const recordsResp = await fetch(
+      `${import.meta.env.VITE_API_URL}/records`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${data.token}`,
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
+
     const recordsData = await recordsResp.json();
+
     console.log('Records Response:', JSON.stringify(recordsData, null, 2));
   }
 }
+
 test();
