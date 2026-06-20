@@ -83,7 +83,7 @@ async function seed() {
   // Create demo admin
   const admin = new Patient({
     name: 'System Admin',
-    email: 'admin@demo.com',
+    email: 'soniyavinoth07@gmail.com',
     password: 'password123',
     role: 'ADMIN',
     phone: '9876543212'

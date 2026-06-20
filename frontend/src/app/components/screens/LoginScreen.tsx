@@ -158,7 +158,7 @@ export function LoginScreen({ onLogin, language }: LoginScreenProps) {
     setLoading(true);
     setError(null);
     try {
-      const demoEmail = role === 'patient' ? 'patient@demo.com' : (role === 'doctor' ? 'doctor@demo.com' : 'admin@demo.com');
+      const demoEmail = role === 'patient' ? 'patient@demo.com' : (role === 'doctor' ? 'doctor@demo.com' : 'soniyavinoth07@gmail.com');
       const response = await api.post('/auth/login', { email: demoEmail, password: 'password123' });
       localStorage.setItem('token', response.token);
       localStorage.setItem('role', role);

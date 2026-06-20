@@ -23,6 +23,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
   const [isScanning, setIsScanning] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [manualInput, setManualInput] = useState('');
   const secureInfo = getSecureContextInfo();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -167,6 +168,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
 
   const handleScan = async () => {
     setScanError(null);
+    setPermissionDenied(false);
 
     if (!secureInfo.isSecureContextOk) {
       setScanError(t('secureContextRequired'));
@@ -202,14 +204,13 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       
       // Wait for video metadata to be loaded
       await new Promise((resolve) => {
+        const timeout = window.setTimeout(resolve, 3000);
         const onLoadedMetadata = () => {
+          window.clearTimeout(timeout);
           videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
           resolve(null);
         };
         videoRef.current?.addEventListener('loadedmetadata', onLoadedMetadata);
-        
-        // Timeout after 3 seconds
-        setTimeout(resolve, 3000);
       });
 
       // Try native BarcodeDetector first, then fall back to jsQR
@@ -276,10 +277,25 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
       scanFrameRef.current = requestAnimationFrame(scanFrame);
     } catch (err: any) {
       stopScanning();
+      const errorName = err?.name || '';
       const errorMsg = err?.message || t('unableToAccessCamera');
-      if (errorMsg.includes('NotFoundError') || errorMsg.includes('NotAllowedError')) {
+      const permissionDeniedErrors = [
+        'NotAllowedError',
+        'PermissionDeniedError',
+        'SecurityError',
+      ];
+
+      const isPerm = permissionDeniedErrors.some((name) => errorName.includes(name)) || 
+                     errorMsg.toLowerCase().includes('permission denied') ||
+                     errorMsg.toLowerCase().includes('permission');
+
+      if (isPerm) {
+        setPermissionDenied(true);
         setScanError(t('cameraPermissionDenied'));
-      } else if (errorMsg.includes('NotSupportedError')) {
+        console.warn('Camera permission denied:', errorName, errorMsg);
+      } else if (['NotFoundError', 'DevicesNotFoundError'].some((name) => errorName.includes(name))) {
+        setScanError(t('cameraNotFound'));
+      } else if (errorName.includes('NotSupportedError')) {
         setScanError(t('cameraNotSupported'));
       } else {
         setScanError(errorMsg);
@@ -372,7 +388,7 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
                   type="text"
                   placeholder={t('pasteQrPlaceholder')}
                   value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setManualInput(e.target.value)}
                 />
                 <Button
                   variant="outline"
@@ -385,7 +401,29 @@ export function ScanQRTab({ onNavigate, onPatientSelected, selectedPatient }: Sc
             </div>
 
             {scanError && (
-              <p className="text-sm text-red-500">{scanError}</p>
+              <div className="space-y-3">
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                  {scanError}
+                </div>
+                {permissionDenied && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800 space-y-2">
+                    <p className="font-semibold">How to allow camera access:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li><strong>Chrome/Edge:</strong> Click the camera icon (blocked 🚫) next to the address bar → "Always allow on this site" → Refresh</li>
+                      <li><strong>Firefox:</strong> Browser asks for permission → Click "Allow" → Refresh</li>
+                      <li><strong>Safari:</strong> Settings → Privacy → Camera → Allow this website</li>
+                    </ul>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleScan}
+                      className="w-full mt-2"
+                    >
+                      {t('retry')} 🔄
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ) : (
